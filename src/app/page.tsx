@@ -45,9 +45,9 @@ type ActiveTab = 'input' | 'dashboard'
 // ─────────────────────────────────────────
 async function fetchMasterData(supabase: ReturnType<typeof createClient>, userId: string) {
   const [catsRes, subsRes, pmsRes] = await Promise.all([
-    supabase.from('categories').select('*').eq('user_id', userId).order('sort_order'),
-    supabase.from('subcategories').select('*').eq('user_id', userId).order('sort_order'),
-    supabase.from('payment_methods').select('*').eq('user_id', userId).order('sort_order'),
+    supabase.from('categories').select('*').order('sort_order'),
+    supabase.from('subcategories').select('*').order('sort_order'),
+    supabase.from('payment_methods').select('*').order('sort_order'),
   ])
   return {
     categories: (catsRes.data ?? []) as Category[],
@@ -55,6 +55,7 @@ async function fetchMasterData(supabase: ReturnType<typeof createClient>, userId
     paymentMethods: (pmsRes.data ?? []) as PaymentMethod[],
   }
 }
+
 
 async function fetchTransactions(supabase: ReturnType<typeof createClient>, userId: string) {
   const { data } = await supabase
@@ -117,38 +118,25 @@ async function ensureDefaultData(
     const { count } = await supabase
       .from('categories')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
 
     if ((count ?? 0) > 0) return
 
-    // まず RPC を試す
-    const { error: rpcErr } = await supabase.rpc('insert_default_data', { p_user_id: userId })
-
-    // 再確認
-    const { count: newCount } = await supabase
-      .from('categories')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-
-    if ((newCount ?? 0) > 0) return
-
-    // RPC が失敗または動作しなかった場合のフロントエンド直挿入フォールバック
-    console.log('Inserting default data from client fallback...')
+    console.log('Inserting default data...')
 
     // 大カテゴリ
     const defaultCategories = [
-      { user_id: userId, name: '食費', icon: '🍽️', color: '#FF6B6B', sort_order: 1 },
-      { user_id: userId, name: '住居費', icon: '🏠', color: '#4ECDC4', sort_order: 2 },
-      { user_id: userId, name: '趣味', icon: '🎮', color: '#A78BFA', sort_order: 3 },
-      { user_id: userId, name: '交際費', icon: '🤝', color: '#F59E0B', sort_order: 4 },
-      { user_id: userId, name: '固定費', icon: '🔄', color: '#6366F1', sort_order: 5 },
-      { user_id: userId, name: '自己投資', icon: '📚', color: '#10B981', sort_order: 6 },
-      { user_id: userId, name: '収入', icon: '💰', color: '#F472B6', sort_order: 7 },
+      { name: '食費', icon: '🍽️', color: '#FF6B6B', sort_order: 1 },
+      { name: '住居費', icon: '🏠', color: '#4ECDC4', sort_order: 2 },
+      { name: '趣味', icon: '🎮', color: '#A78BFA', sort_order: 3 },
+      { name: '交際費', icon: '🤝', color: '#F59E0B', sort_order: 4 },
+      { name: '固定費', icon: '🔄', color: '#6366F1', sort_order: 5 },
+      { name: '自己投資', icon: '📚', color: '#10B981', sort_order: 6 },
+      { name: '収入', icon: '💰', color: '#F472B6', sort_order: 7 },
     ]
 
     const { data: insertedCats } = await supabase
       .from('categories')
-      .insert(defaultCategories)
+      .upsert(defaultCategories, { onConflict: 'name' })
       .select()
 
     const catMap = new Map((insertedCats ?? []).map((c: any) => [c.name, c.id]))
@@ -158,38 +146,39 @@ async function ensureDefaultData(
     if (catMap.has('食費')) {
       const id = catMap.get('食費')
       subcats.push(
-        { user_id: userId, category_id: id, name: '外食', sort_order: 1 },
-        { user_id: userId, category_id: id, name: '自炊', sort_order: 2 },
-        { user_id: userId, category_id: id, name: 'カフェ', sort_order: 3 },
-        { user_id: userId, category_id: id, name: 'コンビニ', sort_order: 4 }
+        { category_id: id, name: '外食', sort_order: 1 },
+        { category_id: id, name: '自炊', sort_order: 2 },
+        { category_id: id, name: 'カフェ', sort_order: 3 },
+        { category_id: id, name: 'コンビニ', sort_order: 4 }
       )
     }
     if (catMap.has('趣味')) {
       const id = catMap.get('趣味')
       subcats.push(
-        { user_id: userId, category_id: id, name: '推し活', sort_order: 1 },
-        { user_id: userId, category_id: id, name: 'ゲーム', sort_order: 2 },
-        { user_id: userId, category_id: id, name: '映画', sort_order: 3 },
-        { user_id: userId, category_id: id, name: '音楽', sort_order: 4 }
+        { category_id: id, name: '推し活', sort_order: 1 },
+        { category_id: id, name: 'ゲーム', sort_order: 2 },
+        { category_id: id, name: '映画', sort_order: 3 },
+        { category_id: id, name: '音楽', sort_order: 4 }
       )
     }
     if (subcats.length > 0) {
-      await supabase.from('subcategories').insert(subcats)
+      await supabase.from('subcategories').upsert(subcats, { onConflict: 'category_id,name' })
     }
 
     // 支払い方法
     const defaultPms = [
-      { user_id: userId, name: '現金', icon: '💵', sort_order: 1 },
-      { user_id: userId, name: 'カードA', icon: '💳', sort_order: 2 },
-      { user_id: userId, name: 'カードB', icon: '💳', sort_order: 3 },
-      { user_id: userId, name: 'PayPay', icon: '📱', sort_order: 4 },
-      { user_id: userId, name: '銀行口座', icon: '🏦', sort_order: 5 },
+      { name: '現金', icon: '💵', sort_order: 1 },
+      { name: 'カードA', icon: '💳', sort_order: 2 },
+      { name: 'カードB', icon: '💳', sort_order: 3 },
+      { name: 'PayPay', icon: '📱', sort_order: 4 },
+      { name: '銀行口座', icon: '🏦', sort_order: 5 },
     ]
-    await supabase.from('payment_methods').insert(defaultPms)
+    await supabase.from('payment_methods').upsert(defaultPms, { onConflict: 'name' })
   } catch (err) {
     console.error('ensureDefaultData error:', err)
   }
 }
+
 
 
 // ─────────────────────────────────────────
@@ -279,8 +268,8 @@ export default function Home() {
     )
   }
 
-  // ─── Auth Error Screen or Empty Master Screen ───
-  if (authError || !userId || (categories.length === 0 && !loading)) {
+  // ─── Auth Error Screen ───
+  if (authError) {
     return (
       <div
         style={{
@@ -296,29 +285,13 @@ export default function Home() {
       >
         <div style={{ fontSize: 48 }}>⚙️</div>
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 800 }}>
-          {categories.length === 0 ? '初期データを準備中...' : 'Supabase 設定が必要です'}
+          Supabase 設定が必要です
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7 }}>
-          {categories.length === 0
-            ? 'カテゴリや支払い方法を準備しています。下のボタンを押して初期データをロードしてください。'
-            : '.env.local にSupabaseのURLとAnon Keyを設定し、Supabaseで匿名ログインを有効にしてください。'}
+          Supabase の接続情報をご確認ください。
         </p>
         <button
-          onClick={async () => {
-            setLoading(true)
-            // 匿名サインインをリセット再試行
-            await supabase.auth.signOut()
-            const { data } = await supabase.auth.signInAnonymously()
-            if (data?.user) {
-              setUserId(data.user.id)
-              await ensureDefaultData(supabase, data.user.id)
-              const master = await fetchMasterData(supabase, data.user.id)
-              setCategories(master.categories)
-              setSubcategories(master.subcategories)
-              setPaymentMethods(master.paymentMethods)
-            }
-            setLoading(false)
-          }}
+          onClick={() => initialize()}
           style={{
             marginTop: 8,
             padding: '12px 28px',
@@ -331,11 +304,12 @@ export default function Home() {
             cursor: 'pointer',
           }}
         >
-          🔄 初期データをロード・再作成する
+          再試行
         </button>
       </div>
     )
   }
+
 
 
   // ─── Main App ───

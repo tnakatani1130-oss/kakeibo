@@ -1,6 +1,6 @@
 -- ============================================================
--- 家計簿アプリ Supabase スキーマ定義 (本番運用用・安全版)
--- ※ 既存のデータを削除せず、安全にテーブルを作成・更新します
+-- 家計簿アプリ Supabase スキーマ定義 (本番運用用・安全＆重複防止版)
+-- ※ 既存データを壊さず、同名項目の重複登録をデータベースレベルで防ぎます
 -- ============================================================
 
 -- UUID拡張
@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
-  name        TEXT NOT NULL,
+  name        TEXT NOT NULL UNIQUE,           -- UNIQUEで同名カテゴリの重複を防止
   icon        TEXT,
   color       TEXT,
   sort_order  INTEGER DEFAULT 0,
@@ -24,14 +24,15 @@ CREATE TABLE IF NOT EXISTS subcategories (
   category_id     UUID REFERENCES categories(id) ON DELETE CASCADE,
   name            TEXT NOT NULL,
   sort_order      INTEGER DEFAULT 0,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(category_id, name)                   -- 同じカテゴリ内で同名のサブカテゴリ重複を防止
 );
 
 -- 3. 支払い方法テーブル
 CREATE TABLE IF NOT EXISTS payment_methods (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
-  name        TEXT NOT NULL,
+  name        TEXT NOT NULL UNIQUE,           -- UNIQUEで同名支払い方法の重複を防止
   icon        TEXT,
   sort_order  INTEGER DEFAULT 0,
   created_at  TIMESTAMPTZ DEFAULT NOW()

@@ -32,6 +32,9 @@ export default function Dashboard({
   const [subTab, setSubTab] = useState<'chart' | 'calendar' | 'list'>('chart')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   
+  // 削除確認モーダル用の選ばれたTransaction
+  const [pendingDeleteTx, setPendingDeleteTx] = useState<Transaction | null>(null)
+  
   // カレンダータップで選択された日付のモーダル
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null)
 
@@ -50,11 +53,13 @@ export default function Dashboard({
     onChangeYearMonth(ym)
   }
 
-  // 削除処理
-  const handleDelete = async (id: string) => {
-    setDeletingId(id)
+  // 削除の最終実行
+  const confirmDelete = async () => {
+    if (!pendingDeleteTx) return
+    setDeletingId(pendingDeleteTx.id)
     try {
-      await supabase.from('transactions').delete().eq('id', id)
+      await supabase.from('transactions').delete().eq('id', pendingDeleteTx.id)
+      setPendingDeleteTx(null)
       onDeleted()
     } catch (err) {
       console.error('Delete tx error:', err)
@@ -67,13 +72,11 @@ export default function Dashboard({
   const [year, month] = currentYearMonth.split('-').map(Number)
   const firstDay = new Date(year, month - 1, 1)
   const lastDay = new Date(year, month, 0)
-  const startDayOfWeek = firstDay.getDay() // 0 = 日曜
+  const startDayOfWeek = firstDay.getDay()
   const daysInMonth = lastDay.getDate()
 
-  // 当月のトランザクションのみフィルタ
   const monthlyTx = transactions.filter((t) => t.date.startsWith(currentYearMonth))
 
-  // 日別の合計額マップ
   const dayMap = new Map<string, { expense: number; income: number; txs: Transaction[] }>()
   monthlyTx.forEach((tx) => {
     const cur = dayMap.get(tx.date) || { expense: 0, income: 0, txs: [] }
@@ -83,7 +86,6 @@ export default function Dashboard({
     dayMap.set(tx.date, cur)
   })
 
-  // カレンダーのセル配列生成
   const calendarCells = []
   for (let i = 0; i < startDayOfWeek; i++) {
     calendarCells.push(null)
@@ -93,7 +95,6 @@ export default function Dashboard({
     calendarCells.push({ day: d, dateStr, data: dayMap.get(dateStr) })
   }
 
-  // 選択日のトランザクション
   const selectedDayTxs = selectedDayDate ? dayMap.get(selectedDayDate)?.txs || [] : []
 
   return (
@@ -167,7 +168,6 @@ export default function Dashboard({
             <DonutChart data={summary.byCategory} totalExpense={summary.totalExpense} />
           </div>
 
-          {/* バーリスト */}
           {summary.byCategory.length > 0 && (
             <div className="glass-card" style={{ padding: 16 }}>
               <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: 'var(--text-secondary)' }}>
@@ -199,7 +199,6 @@ export default function Dashboard({
       {subTab === 'calendar' && (
         <div className="px-4">
           <div className="glass-card" style={{ padding: 12 }}>
-            {/* 曜日ヘッダー */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', marginBottom: 8, fontSize: 11, fontWeight: 700 }}>
               <span style={{ color: '#FF6B6B' }}>日</span>
               <span>月</span>
@@ -210,7 +209,6 @@ export default function Dashboard({
               <span style={{ color: '#3B82F6' }}>土</span>
             </div>
 
-            {/* カレンダーグリッド */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
               {calendarCells.map((cell, idx) => {
                 if (!cell) {
@@ -290,8 +288,7 @@ export default function Dashboard({
                 </div>
                 <button
                   className="tx-delete-btn"
-                  disabled={deletingId === tx.id}
-                  onClick={() => handleDelete(tx.id)}
+                  onClick={() => setPendingDeleteTx(tx)}
                 >
                   🗑️
                 </button>
@@ -314,7 +311,6 @@ export default function Dashboard({
               </button>
             </div>
 
-            {/* この日に記録するボタン */}
             <button
               className="btn-primary"
               style={{ width: '100%', padding: 12, fontSize: 14, marginBottom: 16 }}
@@ -327,7 +323,6 @@ export default function Dashboard({
               ＋ この日 ({selectedDayDate}) に記録する
             </button>
 
-            {/* 日別明細リスト */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '40vh', overflowY: 'auto' }}>
               {selectedDayTxs.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 16 }}>
@@ -347,9 +342,59 @@ export default function Dashboard({
                     <div className={`tx-amount ${tx.type}`} style={{ fontSize: 14 }}>
                       {tx.type === 'expense' ? '-' : '+'}¥{formatAmount(tx.amount)}
                     </div>
+                    <button
+                      className="tx-delete-btn"
+                      style={{ padding: '4px 6px', fontSize: 12 }}
+                      onClick={() => setPendingDeleteTx(tx)}
+                    >
+                      🗑️
+                    </button>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 🛡️ 安全削除確認モーダル ── */}
+      {pendingDeleteTx && (
+        <div className="modal-overlay" onClick={() => setPendingDeleteTx(null)}>
+          <div className="modal-content card-glass" onClick={(e) => e.stopPropagation()} style={{ padding: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>記録を削除しますか？</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20 }}>
+              {pendingDeleteTx.date} 【{pendingDeleteTx.category?.name || '未分類'}】
+              <br />
+              <strong style={{ fontSize: 16, color: pendingDeleteTx.type === 'expense' ? '#FF6B6B' : '#34D399' }}>
+                {pendingDeleteTx.type === 'expense' ? '-' : '+'}¥{formatAmount(pendingDeleteTx.amount)}
+              </strong>
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                className="chip"
+                style={{ flex: 1, padding: '12px', fontSize: 14, justifyContent: 'center' }}
+                onClick={() => setPendingDeleteTx(null)}
+              >
+                キャンセル
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#EF4444',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+                disabled={deletingId === pendingDeleteTx.id}
+                onClick={confirmDelete}
+              >
+                {deletingId === pendingDeleteTx.id ? '削除中...' : '削除する'}
+              </button>
             </div>
           </div>
         </div>

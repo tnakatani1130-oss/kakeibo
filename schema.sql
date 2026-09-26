@@ -58,6 +58,12 @@ ALTER TABLE subcategories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_methods DISABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions DISABLE ROW LEVEL SECURITY;
 
+-- 🔴 HTTP 403 (Forbidden) エラーを防止する全アクセス権限の完全解放
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, postgres, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, postgres, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, postgres, service_role;
+
 -- 初期データ（ボタンデータ）の投入（既存データがある場合は重複追加しません）
 INSERT INTO categories (name, icon, color, sort_order) VALUES
   ('食費',     '🍽️',  '#FF6B6B', 1),

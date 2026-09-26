@@ -1,6 +1,6 @@
 -- ============================================================
--- 家計簿アプリ Supabase 本番固定用スキーマ（何度実行しても安全）
--- ※ テーブル削除（DROP）は含まれません。何度実行してもデータは保持されます。
+-- 家計簿アプリ Supabase 本番固定用スキーマ（全カテゴリ初期データ付き）
+-- ※ ユーザー指定の完全カテゴリ・サブカテゴリリストを初期投入します
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -58,23 +58,194 @@ ALTER TABLE subcategories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_methods DISABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions DISABLE ROW LEVEL SECURITY;
 
--- 🔴 HTTP 403 (Forbidden) エラーを防止する全アクセス権限の完全解放
+-- 403 Forbidden防止の完全権限開放
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, postgres, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, postgres, service_role;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, postgres, service_role;
 
--- 初期データ（ボタンデータ）の投入（既存データがある場合は重複追加しません）
+-- ============================================================
+-- 初期マスタデータ（全カテゴリ・サブカテゴリ・支払い方法）
+-- ============================================================
+
+-- 大カテゴリ
 INSERT INTO categories (name, icon, color, sort_order) VALUES
-  ('食費',     '🍽️',  '#FF6B6B', 1),
-  ('住居費',   '🏠',  '#4ECDC4', 2),
-  ('趣味',     '🎮',  '#A78BFA', 3),
-  ('交際費',   '🤝',  '#F59E0B', 4),
-  ('固定費',   '🔄',  '#6366F1', 5),
-  ('自己投資', '📚',  '#10B981', 6),
-  ('収入',     '💰',  '#F472B6', 7)
+  ('食費',         '🍽️', '#FF6B6B', 1),
+  ('日用品',       '🧻', '#4ECDC4', 2),
+  ('趣味娯楽',     '🎮', '#A78BFA', 3),
+  ('交際費',       '🤝', '#F59E0B', 4),
+  ('交通費',       '🚃', '#3B82F6', 5),
+  ('自動車',       '🚗', '#60A5FA', 6),
+  ('衣服美容',     '💄', '#EC4899', 7),
+  ('健康医療',     '🏥', '#10B981', 8),
+  ('教養教育',     '📚', '#6366F1', 9),
+  ('特別な支出',   '🛋️', '#F97316', 10),
+  ('現金カード',   '💳', '#8B5CF6', 11),
+  ('水道光熱費',   '💡', '#EAB308', 12),
+  ('通信費',       '📱', '#06B6D4', 13),
+  ('住宅',         '🏠', '#84CC16', 14),
+  ('税社会保障',   '🏛️', '#64748B', 15),
+  ('保険',         '🛡️', '#14B8A6', 16),
+  ('その他',       '📦', '#94A3B8', 17),
+  ('収入',         '💰', '#F472B6', 18)
 ON CONFLICT (name) DO NOTHING;
 
+-- サブカテゴリ挿入（ヘルパー関数）
+DO $$
+DECLARE
+  cid UUID;
+BEGIN
+  -- 食費
+  SELECT id INTO cid FROM categories WHERE name = '食費';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '食費', 1), (cid, '外食', 2), (cid, '食料品', 3), (cid, '朝食', 4),
+      (cid, '昼食', 5), (cid, '夕食', 6), (cid, 'カフェ', 7), (cid, '配食サービス', 8), (cid, 'その他', 9)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 日用品
+  SELECT id INTO cid FROM categories WHERE name = '日用品';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '日用品', 1), (cid, 'ドラッグストア', 2), (cid, 'その他', 3)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 趣味娯楽
+  SELECT id INTO cid FROM categories WHERE name = '趣味娯楽';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, 'アウトドア', 1), (cid, 'スポーツ', 2), (cid, '映画', 3), (cid, '音楽', 4),
+      (cid, 'ゲーム', 5), (cid, '本（趣味）', 6), (cid, '旅行', 7), (cid, 'サブスク', 8), (cid, 'その他', 9)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 交際費
+  SELECT id INTO cid FROM categories WHERE name = '交際費';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '交際費', 1), (cid, '飲み会', 2), (cid, 'プレゼント', 3), (cid, '冠婚葬祭', 4), (cid, 'その他', 5)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 交通費
+  SELECT id INTO cid FROM categories WHERE name = '交通費';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '交通費', 1), (cid, '電車', 2), (cid, 'バス', 3), (cid, 'タクシー', 4),
+      (cid, '飛行機', 5), (cid, 'レンタカー', 6), (cid, '駐車場', 7), (cid, '駐輪場', 8), (cid, 'その他', 9)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 自動車
+  SELECT id INTO cid FROM categories WHERE name = '自動車';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '自動車ローン', 1), (cid, '道路料金', 2), (cid, 'ガソリン', 3), (cid, '駐車場', 4),
+      (cid, '車両', 5), (cid, '車検整備', 6), (cid, '自動車保険', 7)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 衣服美容
+  SELECT id INTO cid FROM categories WHERE name = '衣服美容';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '衣服', 1), (cid, 'クリーニング', 2), (cid, '美容院理髪', 3), (cid, '化粧品', 4), (cid, 'アクセサリー', 5), (cid, 'その他', 6)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 健康医療
+  SELECT id INTO cid FROM categories WHERE name = '健康医療';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, 'フィットネス', 1), (cid, 'ボディケア', 2), (cid, '医療費', 3), (cid, '薬', 4), (cid, 'その他', 5)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 教養教育
+  SELECT id INTO cid FROM categories WHERE name = '教養教育';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '本（自己研鑽）', 1), (cid, '新聞雑誌', 2), (cid, '習い事', 3), (cid, '学費', 4), (cid, '塾', 5), (cid, 'その他', 6)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 特別な支出
+  SELECT id INTO cid FROM categories WHERE name = '特別な支出';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '家具', 1), (cid, '家電', 2), (cid, '住宅リフォーム', 3), (cid, 'その他', 4)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 現金カード
+  SELECT id INTO cid FROM categories WHERE name = '現金カード';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, 'ATM引き出し', 1), (cid, 'カード引き落とし', 2), (cid, '電子マネー', 3), (cid, '使途不明金', 4), (cid, 'その他', 5)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 水道光熱費
+  SELECT id INTO cid FROM categories WHERE name = '水道光熱費';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '光熱費', 1), (cid, '電気代', 2), (cid, 'ガス灯油代', 3), (cid, '水道代', 4), (cid, 'その他', 5)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 通信費
+  SELECT id INTO cid FROM categories WHERE name = '通信費';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '携帯電話', 1), (cid, '固定電話', 2), (cid, 'インターネット', 3), (cid, '放送視聴料', 4), (cid, '情報サービス', 5), (cid, '宅配便運送', 6), (cid, 'その他', 7)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 住宅
+  SELECT id INTO cid FROM categories WHERE name = '住宅';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '住宅', 1), (cid, '家賃', 2), (cid, 'ローン返済', 3), (cid, '管理費積立金', 4), (cid, '地震火災保険', 5), (cid, 'その他', 6)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 税社会保障
+  SELECT id INTO cid FROM categories WHERE name = '税社会保障';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '所得税住民税', 1), (cid, '年金保険料', 2), (cid, '健康保険', 3), (cid, 'その他', 4)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 保険
+  SELECT id INTO cid FROM categories WHERE name = '保険';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '生命保険', 1), (cid, '医療保険', 2), (cid, 'その他', 3)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- その他
+  SELECT id INTO cid FROM categories WHERE name = 'その他';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '仕送り', 1), (cid, '事業経費', 2), (cid, '事業原価', 3), (cid, '事業投資', 4), (cid, '寄付金', 5), (cid, '雑費', 6)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+  -- 収入
+  SELECT id INTO cid FROM categories WHERE name = '収入';
+  IF cid IS NOT NULL THEN
+    INSERT INTO subcategories (category_id, name, sort_order) VALUES
+      (cid, '給与', 1), (cid, '一時所得', 2), (cid, '事業・副業', 3), (cid, '年金', 4), (cid, '配当所得', 5), (cid, '不動産所得', 6), (cid, '不明な入金', 7), (cid, 'その他入金', 8)
+    ON CONFLICT (category_id, name) DO NOTHING;
+  END IF;
+
+END $$;
+
+-- 支払い方法
 INSERT INTO payment_methods (name, icon, sort_order) VALUES
   ('現金',      '💵', 1),
   ('カードA',   '💳', 2),

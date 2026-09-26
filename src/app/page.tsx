@@ -121,17 +121,28 @@ async function ensureDefaultData(
 
     if ((count ?? 0) > 0) return
 
-    console.log('Inserting default data...')
+    console.log('Inserting default user categories...')
 
-    // 大カテゴリ
+    // 大カテゴリ定義
     const defaultCategories = [
       { name: '食費', icon: '🍽️', color: '#FF6B6B', sort_order: 1 },
-      { name: '住居費', icon: '🏠', color: '#4ECDC4', sort_order: 2 },
-      { name: '趣味', icon: '🎮', color: '#A78BFA', sort_order: 3 },
+      { name: '日用品', icon: '🧻', color: '#4ECDC4', sort_order: 2 },
+      { name: '趣味娯楽', icon: '🎮', color: '#A78BFA', sort_order: 3 },
       { name: '交際費', icon: '🤝', color: '#F59E0B', sort_order: 4 },
-      { name: '固定費', icon: '🔄', color: '#6366F1', sort_order: 5 },
-      { name: '自己投資', icon: '📚', color: '#10B981', sort_order: 6 },
-      { name: '収入', icon: '💰', color: '#F472B6', sort_order: 7 },
+      { name: '交通費', icon: '🚃', color: '#3B82F6', sort_order: 5 },
+      { name: '自動車', icon: '🚗', color: '#60A5FA', sort_order: 6 },
+      { name: '衣服美容', icon: '💄', color: '#EC4899', sort_order: 7 },
+      { name: '健康医療', icon: '🏥', color: '#10B981', sort_order: 8 },
+      { name: '教養教育', icon: '📚', color: '#6366F1', sort_order: 9 },
+      { name: '特別な支出', icon: '🛋️', color: '#F97316', sort_order: 10 },
+      { name: '現金カード', icon: '💳', color: '#8B5CF6', sort_order: 11 },
+      { name: '水道光熱費', icon: '💡', color: '#EAB308', sort_order: 12 },
+      { name: '通信費', icon: '📱', color: '#06B6D4', sort_order: 13 },
+      { name: '住宅', icon: '🏠', color: '#84CC16', sort_order: 14 },
+      { name: '税社会保障', icon: '🏛️', color: '#64748B', sort_order: 15 },
+      { name: '保険', icon: '🛡️', color: '#14B8A6', sort_order: 16 },
+      { name: 'その他', icon: '📦', color: '#94A3B8', sort_order: 17 },
+      { name: '収入', icon: '💰', color: '#F472B6', sort_order: 18 },
     ]
 
     const { data: insertedCats } = await supabase
@@ -141,26 +152,38 @@ async function ensureDefaultData(
 
     const catMap = new Map((insertedCats ?? []).map((c: any) => [c.name, c.id]))
 
-    // サブカテゴリ
+    // サブカテゴリマップ定義
+    const subCategoryMapping: Record<string, string[]> = {
+      '食費': ['食費', '外食', '食料品', '朝食', '昼食', '夕食', 'カフェ', '配食サービス', 'その他'],
+      '日用品': ['日用品', 'ドラッグストア', 'その他'],
+      '趣味娯楽': ['アウトドア', 'スポーツ', '映画', '音楽', 'ゲーム', '本（趣味）', '旅行', 'サブスク', 'その他'],
+      '交際費': ['交際費', '飲み会', 'プレゼント', '冠婚葬祭', 'その他'],
+      '交通費': ['交通費', '電車', 'バス', 'タクシー', '飛行機', 'レンタカー', '駐車場', '駐輪場', 'その他'],
+      '自動車': ['自動車ローン', '道路料金', 'ガソリン', '駐車場', '車両', '車検整備', '自動車保険'],
+      '衣服美容': ['衣服', 'クリーニング', '美容院理髪', '化粧品', 'アクセサリー', 'その他'],
+      '健康医療': ['フィットネス', 'ボディケア', '医療費', '薬', 'その他'],
+      '教養教育': ['本（自己研鑽）', '新聞雑誌', '習い事', '学費', '塾', 'その他'],
+      '特別な支出': ['家具', '家電', '住宅リフォーム', 'その他'],
+      '現金カード': ['ATM引き出し', 'カード引き落とし', '電子マネー', '使途不明金', 'その他'],
+      '水道光熱費': ['光熱費', '電気代', 'ガス灯油代', '水道代', 'その他'],
+      '通信費': ['携帯電話', '固定電話', 'インターネット', '放送視聴料', '情報サービス', '宅配便運送', 'その他'],
+      '住宅': ['住宅', '家賃', 'ローン返済', '管理費積立金', '地震火災保険', 'その他'],
+      '税社会保障': ['所得税住民税', '年金保険料', '健康保険', 'その他'],
+      '保険': ['生命保険', '医療保険', 'その他'],
+      'その他': ['仕送り', '事業経費', '事業原価', '事業投資', '寄付金', '雑費'],
+      '収入': ['給与', '一時所得', '事業・副業', '年金', '配当所得', '不動産所得', '不明な入金', 'その他入金'],
+    }
+
     const subcats: any[] = []
-    if (catMap.has('食費')) {
-      const id = catMap.get('食費')
-      subcats.push(
-        { category_id: id, name: '外食', sort_order: 1 },
-        { category_id: id, name: '自炊', sort_order: 2 },
-        { category_id: id, name: 'カフェ', sort_order: 3 },
-        { category_id: id, name: 'コンビニ', sort_order: 4 }
-      )
+    for (const [catName, subNames] of Object.entries(subCategoryMapping)) {
+      const catId = catMap.get(catName)
+      if (catId) {
+        subNames.forEach((name, idx) => {
+          subcats.push({ category_id: catId, name, sort_order: idx + 1 })
+        })
+      }
     }
-    if (catMap.has('趣味')) {
-      const id = catMap.get('趣味')
-      subcats.push(
-        { category_id: id, name: '推し活', sort_order: 1 },
-        { category_id: id, name: 'ゲーム', sort_order: 2 },
-        { category_id: id, name: '映画', sort_order: 3 },
-        { category_id: id, name: '音楽', sort_order: 4 }
-      )
-    }
+
     if (subcats.length > 0) {
       await supabase.from('subcategories').upsert(subcats, { onConflict: 'category_id,name' })
     }
@@ -178,6 +201,7 @@ async function ensureDefaultData(
     console.error('ensureDefaultData error:', err)
   }
 }
+
 
 
 

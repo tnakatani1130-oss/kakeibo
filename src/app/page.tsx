@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import type {
   Category,
   Subcategory,
@@ -125,7 +127,7 @@ async function ensureDefaultData(
 // Main Page
 // ─────────────────────────────────────────
 export default function Home() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [activeTab, setActiveTab] = useState<ActiveTab>('input')
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)

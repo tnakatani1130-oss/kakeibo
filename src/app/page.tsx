@@ -350,8 +350,15 @@ export default function Home() {
           paymentMethods={paymentMethods}
           userId={userId}
           onSaved={refreshData}
+          onRefreshMaster={async () => {
+            const master = await fetchMasterData(supabase, userId)
+            setCategories(master.categories)
+            setSubcategories(master.subcategories)
+            setPaymentMethods(master.paymentMethods)
+          }}
         />
       ) : (
+
         <Dashboard
           transactions={transactions}
           categories={categories}

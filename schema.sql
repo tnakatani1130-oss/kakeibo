@@ -1,18 +1,12 @@
 -- ============================================================
--- 家計簿アプリ Supabase 確定・データ直投入版 SQL
--- (これを1回実行するだけで、ボタンデータと保存エラーが100%解決します)
+-- 家計簿アプリ Supabase 本番固定用スキーマ（何度実行しても安全）
+-- ※ テーブル削除（DROP）は含まれません。何度実行してもデータは保持されます。
 -- ============================================================
-
--- 1. 既存の古いテーブルを削除してクリア
-DROP TABLE IF EXISTS transactions CASCADE;
-DROP TABLE IF EXISTS subcategories CASCADE;
-DROP TABLE IF EXISTS categories CASCADE;
-DROP TABLE IF EXISTS payment_methods CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. カテゴリテーブル
-CREATE TABLE categories (
+-- 1. カテゴリテーブル
+CREATE TABLE IF NOT EXISTS categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
   name        TEXT NOT NULL UNIQUE,
@@ -22,8 +16,8 @@ CREATE TABLE categories (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. サブカテゴリテーブル
-CREATE TABLE subcategories (
+-- 2. サブカテゴリテーブル
+CREATE TABLE IF NOT EXISTS subcategories (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id         UUID,
   category_id     UUID REFERENCES categories(id) ON DELETE CASCADE,
@@ -33,8 +27,8 @@ CREATE TABLE subcategories (
   UNIQUE(category_id, name)
 );
 
--- 4. 支払い方法テーブル
-CREATE TABLE payment_methods (
+-- 3. 支払い方法テーブル
+CREATE TABLE IF NOT EXISTS payment_methods (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
   name        TEXT NOT NULL UNIQUE,
@@ -43,8 +37,8 @@ CREATE TABLE payment_methods (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. 収支テーブル
-CREATE TABLE transactions (
+-- 4. 収支テーブル
+CREATE TABLE IF NOT EXISTS transactions (
   id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id            UUID,
   date               DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -58,13 +52,13 @@ CREATE TABLE transactions (
   updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLSセキュリティ制限の完全解除
+-- アクセス制限（RLS）の完全解除
 ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE subcategories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_methods DISABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions DISABLE ROW LEVEL SECURITY;
 
--- 6. 初期データ（ボタンデータ）を直接投入！
+-- 初期データ（ボタンデータ）の投入（既存データがある場合は重複追加しません）
 INSERT INTO categories (name, icon, color, sort_order) VALUES
   ('食費',     '🍽️',  '#FF6B6B', 1),
   ('住居費',   '🏠',  '#4ECDC4', 2),

@@ -3,283 +3,357 @@
 import { useState } from 'react'
 import type { Transaction, Category, MonthlySummary } from '@/types'
 import { createClient } from '@/lib/supabase'
+import DonutChart from './DonutChart'
 
-// ─────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────
 function formatAmount(n: number): string {
   return n.toLocaleString('ja-JP')
 }
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', weekday: 'short' })
-}
-
-// ─────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────
 interface DashboardProps {
   transactions: Transaction[]
   categories: Category[]
   summary: MonthlySummary
+  currentYearMonth: string // "YYYY-MM"
+  onChangeYearMonth: (ym: string) => void
   onDeleted: () => void
+  onNavigateToInputWithDate: (dateStr: string) => void
 }
 
-// ─────────────────────────────────────────
-// Category Bar
-// ─────────────────────────────────────────
-function CategoryBar({ item }: { item: MonthlySummary['byCategory'][number] }) {
-  const color = item.category.color ?? '#8b5cf6'
-  return (
-    <div className="cat-bar-row">
-      <div className="cat-bar-label">
-        <span style={{ marginRight: 4 }}>{item.category.icon}</span>
-        {item.category.name}
-      </div>
-      <div className="cat-bar-track">
-        <div
-          className="cat-bar-fill"
-          style={{
-            width: `${item.percentage}%`,
-            background: `linear-gradient(90deg, ${color}cc, ${color})`,
-          }}
-        />
-      </div>
-      <div className="cat-bar-amount">¥{formatAmount(item.total)}</div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────
-// Transaction Item
-// ─────────────────────────────────────────
-function TxItem({
-  tx,
-  onDelete,
-}: {
-  tx: Transaction
-  onDelete: (id: string) => void
-}) {
-  const isExpense = tx.type === 'expense'
-  const isIncome = tx.type === 'income'
-  const catColor = tx.category?.color ?? '#8b5cf6'
-
-  return (
-    <div className="tx-item">
-      <div
-        className="tx-icon"
-        style={{ background: `${catColor}20` }}
-      >
-        {tx.category?.icon ?? '💸'}
-      </div>
-      <div className="tx-info">
-        <div className="tx-cat">
-          {tx.category?.name ?? '未分類'}
-          {tx.subcategory && (
-            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-              {' '}· {tx.subcategory.name}
-            </span>
-          )}
-        </div>
-        <div className="tx-meta">
-          {formatDate(tx.date)}
-          {tx.payment_method && ` · ${tx.payment_method.icon ?? ''}${tx.payment_method.name}`}
-          {tx.memo && ` · ${tx.memo}`}
-        </div>
-      </div>
-      <div className={`tx-amount ${isExpense ? 'expense' : isIncome ? 'income' : ''}`}>
-        {isExpense ? '-' : isIncome ? '+' : ''}¥{formatAmount(tx.amount)}
-      </div>
-      <button
-        id={`del-${tx.id}`}
-        className="tx-delete-btn"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDelete(tx.id)
-        }}
-        aria-label="削除"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────
-// Delete Confirm Modal
-// ─────────────────────────────────────────
-function DeleteModal({
-  onConfirm,
-  onCancel,
-  deleting,
-}: {
-  onConfirm: () => void
-  onCancel: () => void
-  deleting: boolean
-}) {
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🗑️</div>
-          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
-            この記録を削除しますか？
-          </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            削除すると元に戻せません
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            id="cancel-delete-btn"
-            onClick={onCancel}
-            style={{
-              flex: 1,
-              padding: '14px',
-              background: 'var(--bg-glass)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--text-secondary)',
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            キャンセル
-          </button>
-          <button
-            id="confirm-delete-btn"
-            onClick={onConfirm}
-            disabled={deleting}
-            style={{
-              flex: 1,
-              padding: '14px',
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              border: 'none',
-              borderRadius: 'var(--radius-md)',
-              color: 'white',
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {deleting ? '削除中...' : '削除する'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────
-// Dashboard (Main)
-// ─────────────────────────────────────────
 export default function Dashboard({
   transactions,
-  categories: _categories,
+  categories,
   summary,
+  currentYearMonth,
+  onChangeYearMonth,
   onDeleted,
+  onNavigateToInputWithDate,
 }: DashboardProps) {
   const supabase = createClient()
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [subTab, setSubTab] = useState<'chart' | 'calendar' | 'list'>('chart')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  
+  // カレンダータップで選択された日付のモーダル
+  const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null)
 
-  const balance = summary.totalIncome - summary.totalExpense
+  // 年月を操作 (前月 / 次月)
+  const handlePrevMonth = () => {
+    const [y, m] = currentYearMonth.split('-').map(Number)
+    const prevDate = new Date(y, m - 2, 1)
+    const ym = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+    onChangeYearMonth(ym)
+  }
 
-  const handleDelete = async () => {
-    if (!deleteTargetId) return
-    setDeleting(true)
+  const handleNextMonth = () => {
+    const [y, m] = currentYearMonth.split('-').map(Number)
+    const nextDate = new Date(y, m, 1)
+    const ym = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`
+    onChangeYearMonth(ym)
+  }
+
+  // 削除処理
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
     try {
-      const { error } = await supabase.from('transactions').delete().eq('id', deleteTargetId)
-      if (error) throw error
-      setDeleteTargetId(null)
+      await supabase.from('transactions').delete().eq('id', id)
       onDeleted()
     } catch (err) {
-      console.error(err)
+      console.error('Delete tx error:', err)
     } finally {
-      setDeleting(false)
+      setDeletingId(null)
     }
   }
 
+  // ── カレンダー日付マッピング計算 ──
+  const [year, month] = currentYearMonth.split('-').map(Number)
+  const firstDay = new Date(year, month - 1, 1)
+  const lastDay = new Date(year, month, 0)
+  const startDayOfWeek = firstDay.getDay() // 0 = 日曜
+  const daysInMonth = lastDay.getDate()
+
+  // 当月のトランザクションのみフィルタ
+  const monthlyTx = transactions.filter((t) => t.date.startsWith(currentYearMonth))
+
+  // 日別の合計額マップ
+  const dayMap = new Map<string, { expense: number; income: number; txs: Transaction[] }>()
+  monthlyTx.forEach((tx) => {
+    const cur = dayMap.get(tx.date) || { expense: 0, income: 0, txs: [] }
+    if (tx.type === 'expense') cur.expense += tx.amount
+    else if (tx.type === 'income') cur.income += tx.amount
+    cur.txs.push(tx)
+    dayMap.set(tx.date, cur)
+  })
+
+  // カレンダーのセル配列生成
+  const calendarCells = []
+  for (let i = 0; i < startDayOfWeek; i++) {
+    calendarCells.push(null)
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentYearMonth}-${String(d).padStart(2, '0')}`
+    calendarCells.push({ day: d, dateStr, data: dayMap.get(dateStr) })
+  }
+
+  // 選択日のトランザクション
+  const selectedDayTxs = selectedDayDate ? dayMap.get(selectedDayDate)?.txs || [] : []
+
   return (
-    <>
-      {deleteTargetId && (
-        <DeleteModal
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTargetId(null)}
-          deleting={deleting}
-        />
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* ── 月切替ヘッダー ── */}
+      <div className="px-4">
+        <div
+          style={{
+            background: 'var(--bg-glass)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-full)',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <button className="chip" style={{ padding: '4px 12px', fontSize: 13 }} onClick={handlePrevMonth}>
+            ◀ 前月
+          </button>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 800, color: 'white' }}>
+            {year}年 {month}月
+          </div>
+          <button className="chip" style={{ padding: '4px 12px', fontSize: 13 }} onClick={handleNextMonth}>
+            次月 ▶
+          </button>
+        </div>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* ── 今月サマリー ── */}
-        <div style={{ padding: '0 16px' }}>
-          <div className="summary-card">
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
-                今月の支出
-              </div>
-              <div className="summary-amount expense-color">
-                ¥{formatAmount(summary.totalExpense)}
-              </div>
+      {/* ── サブタブ切り替え (円グラフ / カレンダー / 明細リスト) ── */}
+      <div className="px-4">
+        <div className="type-toggle">
+          <button className={`type-btn ${subTab === 'chart' ? 'active-expense' : ''}`} onClick={() => setSubTab('chart')}>
+            📊 集計・円グラフ
+          </button>
+          <button className={`type-btn ${subTab === 'calendar' ? 'active-income' : ''}`} onClick={() => setSubTab('calendar')}>
+            📅 カレンダー
+          </button>
+          <button className={`type-btn ${subTab === 'list' ? 'active-transfer' : ''}`} onClick={() => setSubTab('list')}>
+            📝 明細リスト
+          </button>
+        </div>
+      </div>
+
+      {/* ── 月間収支サマリーカード ── */}
+      <div className="px-4">
+        <div className="summary-card">
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>
+            {year}年{month}月の収支
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>支出</div>
+              <div className="summary-amount expense-color">¥{formatAmount(summary.totalExpense)}</div>
             </div>
-
-            <div style={{ display: 'flex', gap: '24px' }}>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>収入</div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18, color: '#34d399' }}>
-                  +¥{formatAmount(summary.totalIncome)}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>収支</div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18, color: balance >= 0 ? '#34d399' : '#ff6b9d' }}>
-                  {balance >= 0 ? '+' : ''}¥{formatAmount(balance)}
-                </div>
-              </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>収入</div>
+              <div className="summary-amount income-color">¥{formatAmount(summary.totalIncome)}</div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ── カテゴリ別グラフ ── */}
-        {summary.byCategory.length > 0 && (
-          <div style={{ padding: '0 16px' }}>
-            <div className="glass-card" style={{ padding: '16px' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: 'var(--text-secondary)' }}>
-                カテゴリ別内訳
-              </div>
-              {summary.byCategory.map((item) => (
-                <CategoryBar key={item.category.id} item={item} />
-              ))}
-            </div>
+      {/* ── SUB TAB 1: 集計 ＆ 円グラフ ── */}
+      {subTab === 'chart' && (
+        <div className="px-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="glass-card" style={{ padding: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>
+              カテゴリ別 支出割合
+            </h3>
+            <DonutChart data={summary.byCategory} totalExpense={summary.totalExpense} />
           </div>
-        )}
 
-        {/* ── 履歴一覧 ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span className="section-label" style={{ padding: '0 16px' }}>
-            直近の記録 ({transactions.length}件)
-          </span>
-          {transactions.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0', fontSize: 14 }}>
-              まだ記録がありません
-            </div>
-          ) : (
-            <div className="tx-list">
-              {transactions.map((tx) => (
-                <TxItem
-                  key={tx.id}
-                  tx={tx}
-                  onDelete={(id) => setDeleteTargetId(id)}
-                />
+          {/* バーリスト */}
+          {summary.byCategory.length > 0 && (
+            <div className="glass-card" style={{ padding: 16 }}>
+              <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: 'var(--text-secondary)' }}>
+                支出カテゴリの内訳
+              </h4>
+              {summary.byCategory.map((item) => (
+                <div key={item.category?.id || item.category?.name} className="cat-bar-row">
+                  <div className="cat-bar-label">
+                    {item.category?.icon} {item.category?.name}
+                  </div>
+                  <div className="cat-bar-track">
+                    <div
+                      className="cat-bar-fill"
+                      style={{
+                        width: `${item.percentage}%`,
+                        background: item.category?.color || 'var(--accent-purple)',
+                      }}
+                    />
+                  </div>
+                  <div className="cat-bar-amount">¥{formatAmount(item.total)}</div>
+                </div>
               ))}
             </div>
           )}
         </div>
-      </div>
-    </>
+      )}
+
+      {/* ── SUB TAB 2: カレンダー表示 ── */}
+      {subTab === 'calendar' && (
+        <div className="px-4">
+          <div className="glass-card" style={{ padding: 12 }}>
+            {/* 曜日ヘッダー */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', marginBottom: 8, fontSize: 11, fontWeight: 700 }}>
+              <span style={{ color: '#FF6B6B' }}>日</span>
+              <span>月</span>
+              <span>火</span>
+              <span>水</span>
+              <span>木</span>
+              <span>金</span>
+              <span style={{ color: '#3B82F6' }}>土</span>
+            </div>
+
+            {/* カレンダーグリッド */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+              {calendarCells.map((cell, idx) => {
+                if (!cell) {
+                  return <div key={`empty-${idx}`} style={{ height: 52 }} />
+                }
+                const hasExpense = (cell.data?.expense ?? 0) > 0
+                const hasIncome = (cell.data?.income ?? 0) > 0
+
+                return (
+                  <button
+                    key={cell.dateStr}
+                    style={{
+                      height: 54,
+                      background: cell.data ? 'rgba(139, 92, 246, 0.12)' : 'var(--bg-glass)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 8,
+                      padding: 4,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setSelectedDayDate(cell.dateStr)}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{cell.day}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 1 }}>
+                      {hasExpense && (
+                        <span style={{ fontSize: 9, color: '#FF6B6B', fontWeight: 700, lineHeight: 1 }}>
+                          -{cell.data!.expense.toLocaleString('ja-JP')}
+                        </span>
+                      )}
+                      {hasIncome && (
+                        <span style={{ fontSize: 9, color: '#34D399', fontWeight: 700, lineHeight: 1 }}>
+                          +{cell.data!.income.toLocaleString('ja-JP')}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SUB TAB 3: 明細リスト ── */}
+      {subTab === 'list' && (
+        <div className="tx-list">
+          {monthlyTx.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', fontSize: 13 }}>
+              {year}年{month}月の明細データはありません
+            </div>
+          ) : (
+            monthlyTx.map((tx) => (
+              <div key={tx.id} className="tx-item">
+                <div
+                  className="tx-icon"
+                  style={{
+                    background: tx.category?.color ? `${tx.category.color}25` : 'var(--bg-glass)',
+                    color: tx.category?.color || 'var(--text-primary)',
+                  }}
+                >
+                  {tx.category?.icon || (tx.type === 'income' ? '💰' : '💸')}
+                </div>
+                <div className="tx-info">
+                  <div className="tx-cat">
+                    {tx.category?.name || (tx.type === 'income' ? '収入' : '未分類')}
+                    {tx.subcategory && <span style={{ color: 'var(--accent-pink)', fontSize: 11, marginLeft: 6 }}>({tx.subcategory.name})</span>}
+                  </div>
+                  <div className="tx-meta">
+                    {tx.date} • {tx.payment_method?.name || '現金'} {tx.memo && `• ${tx.memo}`}
+                  </div>
+                </div>
+                <div className={`tx-amount ${tx.type}`}>
+                  {tx.type === 'expense' ? '-' : '+'}¥{formatAmount(tx.amount)}
+                </div>
+                <button
+                  className="tx-delete-btn"
+                  disabled={deletingId === tx.id}
+                  onClick={() => handleDelete(tx.id)}
+                >
+                  🗑️
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── カレンダー日付詳細モーダル ── */}
+      {selectedDayDate && (
+        <div className="modal-overlay" onClick={() => setSelectedDayDate(null)}>
+          <div className="modal-content card-glass" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700 }}>
+                {selectedDayDate} の記録
+              </h3>
+              <button className="chip" style={{ padding: '4px 10px' }} onClick={() => setSelectedDayDate(null)}>
+                ✕
+              </button>
+            </div>
+
+            {/* この日に記録するボタン */}
+            <button
+              className="btn-primary"
+              style={{ width: '100%', padding: 12, fontSize: 14, marginBottom: 16 }}
+              onClick={() => {
+                const date = selectedDayDate
+                setSelectedDayDate(null)
+                onNavigateToInputWithDate(date)
+              }}
+            >
+              ＋ この日 ({selectedDayDate}) に記録する
+            </button>
+
+            {/* 日別明細リスト */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '40vh', overflowY: 'auto' }}>
+              {selectedDayTxs.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 16 }}>
+                  この日の記録はありません
+                </div>
+              ) : (
+                selectedDayTxs.map((tx) => (
+                  <div key={tx.id} className="tx-item" style={{ padding: 10 }}>
+                    <span style={{ fontSize: 20 }}>{tx.category?.icon || '💸'}</span>
+                    <div className="tx-info">
+                      <div className="tx-cat" style={{ fontSize: 13 }}>
+                        {tx.category?.name || '未分類'}
+                        {tx.subcategory && <span style={{ fontSize: 11, color: 'var(--accent-pink)', marginLeft: 4 }}>({tx.subcategory.name})</span>}
+                      </div>
+                      <div className="tx-meta" style={{ fontSize: 10 }}>{tx.payment_method?.name} {tx.memo && `• ${tx.memo}`}</div>
+                    </div>
+                    <div className={`tx-amount ${tx.type}`} style={{ fontSize: 14 }}>
+                      {tx.type === 'expense' ? '-' : '+'}¥{formatAmount(tx.amount)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

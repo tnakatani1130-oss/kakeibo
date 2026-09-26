@@ -14,9 +14,6 @@ import type {
 import QuickInput from './components/QuickInput'
 import Dashboard from './components/Dashboard'
 
-// ─────────────────────────────────────────
-// Icons
-// ─────────────────────────────────────────
 function InputIcon({ active }: { active: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -40,10 +37,12 @@ function DashboardIcon({ active }: { active: boolean }) {
 
 type ActiveTab = 'input' | 'dashboard'
 
-// ─────────────────────────────────────────
-// Fetch helpers (client-side)
-// ─────────────────────────────────────────
-async function fetchMasterData(supabase: ReturnType<typeof createClient>, userId: string) {
+function getCurrentYYYYMM(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+async function fetchMasterData(supabase: ReturnType<typeof createClient>) {
   const [catsRes, subsRes, pmsRes] = await Promise.all([
     supabase.from('categories').select('*').order('sort_order'),
     supabase.from('subcategories').select('*').order('sort_order'),
@@ -55,7 +54,6 @@ async function fetchMasterData(supabase: ReturnType<typeof createClient>, userId
     paymentMethods: (pmsRes.data ?? []) as PaymentMethod[],
   }
 }
-
 
 async function fetchTransactions(supabase: ReturnType<typeof createClient>, userId: string) {
   const { data } = await supabase
@@ -69,16 +67,13 @@ async function fetchTransactions(supabase: ReturnType<typeof createClient>, user
     .eq('user_id', userId)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(300)
 
   return (data ?? []) as Transaction[]
 }
 
-function buildSummary(transactions: Transaction[], categories: Category[]): MonthlySummary {
-  // 今月のデータのみ
-  const now = new Date()
-  const yyyyMM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const monthlyTx = transactions.filter((tx) => tx.date.startsWith(yyyyMM))
+function buildSummary(transactions: Transaction[], categories: Category[], yearMonth: string): MonthlySummary {
+  const monthlyTx = transactions.filter((tx) => tx.date.startsWith(yearMonth))
 
   const totalExpense = monthlyTx
     .filter((t) => t.type === 'expense')
@@ -87,7 +82,6 @@ function buildSummary(transactions: Transaction[], categories: Category[]): Mont
     .filter((t) => t.type === 'income')
     .reduce((s, t) => s + t.amount, 0)
 
-  // カテゴリ別集計
   const catMap = new Map<string, number>()
   monthlyTx
     .filter((t) => t.type === 'expense' && t.category_id)
@@ -107,12 +101,8 @@ function buildSummary(transactions: Transaction[], categories: Category[]): Mont
   return { totalExpense, totalIncome, byCategory }
 }
 
-// ─────────────────────────────────────────
-// Setup Default Data (初回ログイン時)
-// ─────────────────────────────────────────
 async function ensureDefaultData(
-  supabase: ReturnType<typeof createClient>,
-  userId: string
+  supabase: ReturnType<typeof createClient>
 ) {
   try {
     const { count } = await supabase
@@ -123,7 +113,6 @@ async function ensureDefaultData(
 
     console.log('Inserting default user categories...')
 
-    // 大カテゴリ定義
     const defaultCategories = [
       { name: '食費', icon: '🍽️', color: '#FF6B6B', sort_order: 1 },
       { name: '日用品', icon: '🧻', color: '#4ECDC4', sort_order: 2 },
@@ -142,7 +131,14 @@ async function ensureDefaultData(
       { name: '税社会保障', icon: '🏛️', color: '#64748B', sort_order: 15 },
       { name: '保険', icon: '🛡️', color: '#14B8A6', sort_order: 16 },
       { name: 'その他', icon: '📦', color: '#94A3B8', sort_order: 17 },
-      { name: '収入', icon: '💰', color: '#F472B6', sort_order: 18 },
+      { name: '給与', type: 'income', icon: '💰', color: '#10B981', sort_order: 101 },
+      { name: '一時所得', type: 'income', icon: '🎁', color: '#F59E0B', sort_order: 102 },
+      { name: '事業・副業', type: 'income', icon: '💼', color: '#3B82F6', sort_order: 103 },
+      { name: '年金', type: 'income', icon: '👴', color: '#8B5CF6', sort_order: 104 },
+      { name: '配当所得', type: 'income', icon: '📈', color: '#EC4899', sort_order: 105 },
+      { name: '不動産所得', type: 'income', icon: '🏢', color: '#6366F1', sort_order: 106 },
+      { name: '不明な入金', type: 'income', icon: '❓', color: '#64748B', sort_order: 107 },
+      { name: 'その他入金', type: 'income', icon: '💵', color: '#14B8A6', sort_order: 108 },
     ]
 
     const { data: insertedCats } = await supabase
@@ -152,7 +148,6 @@ async function ensureDefaultData(
 
     const catMap = new Map((insertedCats ?? []).map((c: any) => [c.name, c.id]))
 
-    // サブカテゴリマップ定義
     const subCategoryMapping: Record<string, string[]> = {
       '食費': ['食費', '外食', '食料品', '朝食', '昼食', '夕食', 'カフェ', '配食サービス', 'その他'],
       '日用品': ['日用品', 'ドラッグストア', 'その他'],
@@ -171,7 +166,6 @@ async function ensureDefaultData(
       '税社会保障': ['所得税住民税', '年金保険料', '健康保険', 'その他'],
       '保険': ['生命保険', '医療保険', 'その他'],
       'その他': ['仕送り', '事業経費', '事業原価', '事業投資', '寄付金', '雑費'],
-      '収入': ['給与', '一時所得', '事業・副業', '年金', '配当所得', '不動産所得', '不明な入金', 'その他入金'],
     }
 
     const subcats: any[] = []
@@ -188,7 +182,6 @@ async function ensureDefaultData(
       await supabase.from('subcategories').upsert(subcats, { onConflict: 'category_id,name' })
     }
 
-    // 支払い方法
     const defaultPms = [
       { name: '現金', icon: '💵', sort_order: 1 },
       { name: 'カードA', icon: '💳', sort_order: 2 },
@@ -202,18 +195,16 @@ async function ensureDefaultData(
   }
 }
 
-
-
-
-// ─────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────
 export default function Home() {
   const supabase = useMemo(() => createClient(), [])
   const [activeTab, setActiveTab] = useState<ActiveTab>('input')
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState(false)
+
+  // 月選択 State (YYYY-MM)
+  const [currentYM, setCurrentYM] = useState<string>(getCurrentYYYYMM())
+  const [inputInitialDate, setInputInitialDate] = useState<string | undefined>(undefined)
 
   const [categories, setCategories] = useState<Category[]>([])
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
@@ -225,15 +216,12 @@ export default function Home() {
     byCategory: [],
   })
 
-  // ─── 認証 & データ初期化 ───
   const initialize = useCallback(async () => {
     setLoading(true)
     try {
-      // Supabase anonymous / session check
       let { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        // 匿名ログイン（Supabaseで有効にする必要あり）
         const { data, error } = await supabase.auth.signInAnonymously()
         if (error || !data.user) {
           setAuthError(true)
@@ -244,22 +232,22 @@ export default function Home() {
       }
 
       setUserId(user.id)
-      await ensureDefaultData(supabase, user.id)
+      await ensureDefaultData(supabase)
 
-      const master = await fetchMasterData(supabase, user.id)
+      const master = await fetchMasterData(supabase)
       setCategories(master.categories)
       setSubcategories(master.subcategories)
       setPaymentMethods(master.paymentMethods)
 
       const txs = await fetchTransactions(supabase, user.id)
       setTransactions(txs)
-      setSummary(buildSummary(txs, master.categories))
+      setSummary(buildSummary(txs, master.categories, currentYM))
     } catch (err) {
       console.error('Init error:', err)
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, currentYM])
 
   useEffect(() => {
     initialize()
@@ -269,22 +257,16 @@ export default function Home() {
     if (!userId) return
     const txs = await fetchTransactions(supabase, userId)
     setTransactions(txs)
-    setSummary(buildSummary(txs, categories))
-  }, [userId, supabase, categories])
+    setSummary(buildSummary(txs, categories, currentYM))
+  }, [userId, supabase, categories, currentYM])
 
-  // ─── Loading Screen ───
+  useEffect(() => {
+    setSummary(buildSummary(transactions, categories, currentYM))
+  }, [currentYM, transactions, categories])
+
   if (loading) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100dvh',
-          flexDirection: 'column',
-          gap: '16px',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', flexDirection: 'column', gap: 16 }}>
         <div style={{ fontSize: 40 }}>💰</div>
         <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
         <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>読み込み中...</div>
@@ -292,122 +274,77 @@ export default function Home() {
     )
   }
 
-  // ─── Auth Error Screen ───
   if (authError) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100dvh',
-          flexDirection: 'column',
-          gap: '16px',
-          padding: '32px',
-          textAlign: 'center',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', flexDirection: 'column', gap: 16, padding: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 48 }}>⚙️</div>
-        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 800 }}>
-          Supabase 設定が必要です
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7 }}>
-          Supabase の接続情報をご確認ください。
-        </p>
-        <button
-          onClick={() => initialize()}
-          style={{
-            marginTop: 8,
-            padding: '12px 28px',
-            background: 'var(--gradient-primary)',
-            border: 'none',
-            borderRadius: 'var(--radius-full)',
-            color: 'white',
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 800 }}>Supabase 設定が必要です</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7 }}>Supabase の接続情報をご確認ください。</p>
+        <button onClick={() => initialize()} style={{ marginTop: 8, padding: '12px 28px', background: 'var(--gradient-primary)', border: 'none', borderRadius: 'var(--radius-full)', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
           再試行
         </button>
       </div>
     )
   }
 
-
-
-  // ─── Main App ───
   return (
     <div className="app-container">
-      {/* Header */}
+      {/* ヘッダー */}
       <div className="page-header">
         <h1 className="page-title">
-          {activeTab === 'input' ? (
-            <>
-              <span className="gradient-text">記録する</span>
-            </>
-          ) : (
-            <>
-              <span className="gradient-text">ダッシュボード</span>
-            </>
-          )}
+          {activeTab === 'input' ? <span className="gradient-text">記録する</span> : <span className="gradient-text">履歴・分析</span>}
         </h1>
-        <div
-          style={{
-            background: 'var(--bg-glass)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-full)',
-            padding: '6px 14px',
-            fontSize: 12,
-            color: 'var(--text-muted)',
-          }}
-        >
-          {new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })}
-        </div>
       </div>
 
-      {/* Content */}
+      {/* メインコンテンツ */}
       {activeTab === 'input' && userId ? (
         <QuickInput
           categories={categories}
           subcategories={subcategories}
           paymentMethods={paymentMethods}
           userId={userId}
+          initialDate={inputInitialDate}
           onSaved={refreshData}
           onRefreshMaster={async () => {
-            const master = await fetchMasterData(supabase, userId)
+            const master = await fetchMasterData(supabase)
             setCategories(master.categories)
             setSubcategories(master.subcategories)
             setPaymentMethods(master.paymentMethods)
           }}
         />
       ) : (
-
         <Dashboard
           transactions={transactions}
           categories={categories}
           summary={summary}
+          currentYearMonth={currentYM}
+          onChangeYearMonth={(ym) => setCurrentYM(ym)}
           onDeleted={refreshData}
+          onNavigateToInputWithDate={(dateStr) => {
+            setInputInitialDate(dateStr)
+            setActiveTab('input')
+          }}
         />
       )}
 
-      {/* Bottom Navigation */}
+      {/* ボトムナビゲーション */}
       <nav className="nav-bar">
         <button
-          id="nav-input"
           className={`nav-btn ${activeTab === 'input' ? 'active' : ''}`}
-          onClick={() => setActiveTab('input')}
+          onClick={() => {
+            setInputInitialDate(undefined)
+            setActiveTab('input')
+          }}
         >
           <InputIcon active={activeTab === 'input'} />
           記録
         </button>
         <button
-          id="nav-dashboard"
           className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
           onClick={() => setActiveTab('dashboard')}
         >
           <DashboardIcon active={activeTab === 'dashboard'} />
-          履歴
+          履歴・分析
         </button>
       </nav>
     </div>

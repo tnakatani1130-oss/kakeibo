@@ -35,15 +35,18 @@ interface QuickInputProps {
   subcategories: Subcategory[]
   paymentMethods: PaymentMethod[]
   userId: string
+  initialDate?: string
   onSaved: () => void
   onRefreshMaster: () => void
 }
+
 
 export default function QuickInput({
   categories,
   subcategories,
   paymentMethods,
   userId,
+  initialDate,
   onSaved,
   onRefreshMaster,
 }: QuickInputProps) {
@@ -55,7 +58,8 @@ export default function QuickInput({
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null)
   const [selectedPayId, setSelectedPayId] = useState<string | null>(() => paymentMethods[0]?.id ?? null)
-  const [selectedDate, setSelectedDate] = useState<string>(todayJST())
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate || todayJST())
+
   const [memo, setMemo] = useState('')
   const [saving, setSaving] = useState(false)
 

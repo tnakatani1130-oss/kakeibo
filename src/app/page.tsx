@@ -113,15 +113,84 @@ async function ensureDefaultData(
   supabase: ReturnType<typeof createClient>,
   userId: string
 ) {
-  const { count } = await supabase
-    .from('categories')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
+  try {
+    const { count } = await supabase
+      .from('categories')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
 
-  if ((count ?? 0) === 0) {
-    await supabase.rpc('insert_default_data', { p_user_id: userId })
+    if ((count ?? 0) > 0) return
+
+    // まず RPC を試す
+    const { error: rpcErr } = await supabase.rpc('insert_default_data', { p_user_id: userId })
+
+    // 再確認
+    const { count: newCount } = await supabase
+      .from('categories')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    if ((newCount ?? 0) > 0) return
+
+    // RPC が失敗または動作しなかった場合のフロントエンド直挿入フォールバック
+    console.log('Inserting default data from client fallback...')
+
+    // 大カテゴリ
+    const defaultCategories = [
+      { user_id: userId, name: '食費', icon: '🍽️', color: '#FF6B6B', sort_order: 1 },
+      { user_id: userId, name: '住居費', icon: '🏠', color: '#4ECDC4', sort_order: 2 },
+      { user_id: userId, name: '趣味', icon: '🎮', color: '#A78BFA', sort_order: 3 },
+      { user_id: userId, name: '交際費', icon: '🤝', color: '#F59E0B', sort_order: 4 },
+      { user_id: userId, name: '固定費', icon: '🔄', color: '#6366F1', sort_order: 5 },
+      { user_id: userId, name: '自己投資', icon: '📚', color: '#10B981', sort_order: 6 },
+      { user_id: userId, name: '収入', icon: '💰', color: '#F472B6', sort_order: 7 },
+    ]
+
+    const { data: insertedCats } = await supabase
+      .from('categories')
+      .insert(defaultCategories)
+      .select()
+
+    const catMap = new Map((insertedCats ?? []).map((c: any) => [c.name, c.id]))
+
+    // サブカテゴリ
+    const subcats: any[] = []
+    if (catMap.has('食費')) {
+      const id = catMap.get('食費')
+      subcats.push(
+        { user_id: userId, category_id: id, name: '外食', sort_order: 1 },
+        { user_id: userId, category_id: id, name: '自炊', sort_order: 2 },
+        { user_id: userId, category_id: id, name: 'カフェ', sort_order: 3 },
+        { user_id: userId, category_id: id, name: 'コンビニ', sort_order: 4 }
+      )
+    }
+    if (catMap.has('趣味')) {
+      const id = catMap.get('趣味')
+      subcats.push(
+        { user_id: userId, category_id: id, name: '推し活', sort_order: 1 },
+        { user_id: userId, category_id: id, name: 'ゲーム', sort_order: 2 },
+        { user_id: userId, category_id: id, name: '映画', sort_order: 3 },
+        { user_id: userId, category_id: id, name: '音楽', sort_order: 4 }
+      )
+    }
+    if (subcats.length > 0) {
+      await supabase.from('subcategories').insert(subcats)
+    }
+
+    // 支払い方法
+    const defaultPms = [
+      { user_id: userId, name: '現金', icon: '💵', sort_order: 1 },
+      { user_id: userId, name: 'カードA', icon: '💳', sort_order: 2 },
+      { user_id: userId, name: 'カードB', icon: '💳', sort_order: 3 },
+      { user_id: userId, name: 'PayPay', icon: '📱', sort_order: 4 },
+      { user_id: userId, name: '銀行口座', icon: '🏦', sort_order: 5 },
+    ]
+    await supabase.from('payment_methods').insert(defaultPms)
+  } catch (err) {
+    console.error('ensureDefaultData error:', err)
   }
 }
+
 
 // ─────────────────────────────────────────
 // Main Page

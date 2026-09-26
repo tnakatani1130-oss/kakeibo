@@ -1,15 +1,15 @@
 -- ============================================================
--- 家計簿アプリ Supabase 本番固定用スキーマ（全カテゴリ初期データ付き）
--- ※ ユーザー指定の完全カテゴリ・サブカテゴリリストを初期投入します
+-- 家計簿アプリ Supabase 本番固定用スキーマ（支出/収入分離カテゴリ対応）
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. カテゴリテーブル
+-- 1. カテゴリテーブル（type: 'expense' | 'income' を追加）
 CREATE TABLE IF NOT EXISTS categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
   name        TEXT NOT NULL UNIQUE,
+  type        TEXT NOT NULL DEFAULT 'expense', -- 'expense' or 'income'
   icon        TEXT,
   color       TEXT,
   sort_order  INTEGER DEFAULT 0,
@@ -65,32 +65,43 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, postgres, se
 GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, postgres, service_role;
 
 -- ============================================================
--- 初期マスタデータ（全カテゴリ・サブカテゴリ・支払い方法）
+-- 初期マスタデータ
 -- ============================================================
 
--- 大カテゴリ
-INSERT INTO categories (name, icon, color, sort_order) VALUES
-  ('食費',         '🍽️', '#FF6B6B', 1),
-  ('日用品',       '🧻', '#4ECDC4', 2),
-  ('趣味娯楽',     '🎮', '#A78BFA', 3),
-  ('交際費',       '🤝', '#F59E0B', 4),
-  ('交通費',       '🚃', '#3B82F6', 5),
-  ('自動車',       '🚗', '#60A5FA', 6),
-  ('衣服美容',     '💄', '#EC4899', 7),
-  ('健康医療',     '🏥', '#10B981', 8),
-  ('教養教育',     '📚', '#6366F1', 9),
-  ('特別な支出',   '🛋️', '#F97316', 10),
-  ('現金カード',   '💳', '#8B5CF6', 11),
-  ('水道光熱費',   '💡', '#EAB308', 12),
-  ('通信費',       '📱', '#06B6D4', 13),
-  ('住宅',         '🏠', '#84CC16', 14),
-  ('税社会保障',   '🏛️', '#64748B', 15),
-  ('保険',         '🛡️', '#14B8A6', 16),
-  ('その他',       '📦', '#94A3B8', 17),
-  ('収入',         '💰', '#F472B6', 18)
-ON CONFLICT (name) DO NOTHING;
+-- 支出 大カテゴリ (17種類)
+INSERT INTO categories (name, type, icon, color, sort_order) VALUES
+  ('食費',         'expense', '🍽️', '#FF6B6B', 1),
+  ('日用品',       'expense', '🧻', '#4ECDC4', 2),
+  ('趣味娯楽',     'expense', '🎮', '#A78BFA', 3),
+  ('交際費',       'expense', '🤝', '#F59E0B', 4),
+  ('交通費',       'expense', '🚃', '#3B82F6', 5),
+  ('自動車',       'expense', '🚗', '#60A5FA', 6),
+  ('衣服美容',     'expense', '💄', '#EC4899', 7),
+  ('健康医療',     'expense', '🏥', '#10B981', 8),
+  ('教養教育',     'expense', '📚', '#6366F1', 9),
+  ('特別な支出',   'expense', '🛋️', '#F97316', 10),
+  ('現金カード',   'expense', '💳', '#8B5CF6', 11),
+  ('水道光熱費',   'expense', '💡', '#EAB308', 12),
+  ('通信費',       'expense', '📱', '#06B6D4', 13),
+  ('住宅',         'expense', '🏠', '#84CC16', 14),
+  ('税社会保障',   'expense', '🏛️', '#64748B', 15),
+  ('保険',         'expense', '🛡️', '#14B8A6', 16),
+  ('その他',       'expense', '📦', '#94A3B8', 17)
+ON CONFLICT (name) DO UPDATE SET type = EXCLUDED.type;
 
--- サブカテゴリ挿入（ヘルパー関数）
+-- 収入 大カテゴリ (8種類)
+INSERT INTO categories (name, type, icon, color, sort_order) VALUES
+  ('給与',         'income',  '💰', '#10B981', 101),
+  ('一時所得',     'income',  '🎁', '#F59E0B', 102),
+  ('事業・副業',   'income',  '💼', '#3B82F6', 103),
+  ('年金',         'income',  '👴', '#8B5CF6', 104),
+  ('配当所得',     'income',  '📈', '#EC4899', 105),
+  ('不動産所得',   'income',  '🏢', '#6366F1', 106),
+  ('不明な入金',   'income',  '❓', '#64748B', 107),
+  ('その他入金',   'income',  '💵', '#14B8A6', 108)
+ON CONFLICT (name) DO UPDATE SET type = EXCLUDED.type;
+
+-- 支出 サブカテゴリ挿入
 DO $$
 DECLARE
   cid UUID;
@@ -232,14 +243,6 @@ BEGIN
   IF cid IS NOT NULL THEN
     INSERT INTO subcategories (category_id, name, sort_order) VALUES
       (cid, '仕送り', 1), (cid, '事業経費', 2), (cid, '事業原価', 3), (cid, '事業投資', 4), (cid, '寄付金', 5), (cid, '雑費', 6)
-    ON CONFLICT (category_id, name) DO NOTHING;
-  END IF;
-
-  -- 収入
-  SELECT id INTO cid FROM categories WHERE name = '収入';
-  IF cid IS NOT NULL THEN
-    INSERT INTO subcategories (category_id, name, sort_order) VALUES
-      (cid, '給与', 1), (cid, '一時所得', 2), (cid, '事業・副業', 3), (cid, '年金', 4), (cid, '配当所得', 5), (cid, '不動産所得', 6), (cid, '不明な入金', 7), (cid, 'その他入金', 8)
     ON CONFLICT (category_id, name) DO NOTHING;
   END IF;
 

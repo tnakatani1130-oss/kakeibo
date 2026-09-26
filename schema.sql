@@ -1,17 +1,13 @@
 -- ============================================================
--- 家計簿アプリ Supabase スキーマ定義 (確定・クリーンリセット版)
+-- 家計簿アプリ Supabase スキーマ定義 (本番運用用・安全版)
+-- ※ 既存のデータを削除せず、安全にテーブルを作成・更新します
 -- ============================================================
 
--- 既存のテーブルを一度すべて消去
-DROP TABLE IF EXISTS transactions CASCADE;
-DROP TABLE IF EXISTS subcategories CASCADE;
-DROP TABLE IF EXISTS categories CASCADE;
-DROP TABLE IF EXISTS payment_methods CASCADE;
-
+-- UUID拡張
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. カテゴリテーブル
-CREATE TABLE categories (
+-- 1. カテゴリテーブル (大カテゴリ)
+CREATE TABLE IF NOT EXISTS categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
   name        TEXT NOT NULL,
@@ -21,8 +17,8 @@ CREATE TABLE categories (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. サブカテゴリテーブル
-CREATE TABLE subcategories (
+-- 2. サブカテゴリテーブル (中カテゴリ / タグ)
+CREATE TABLE IF NOT EXISTS subcategories (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id         UUID,
   category_id     UUID REFERENCES categories(id) ON DELETE CASCADE,
@@ -32,7 +28,7 @@ CREATE TABLE subcategories (
 );
 
 -- 3. 支払い方法テーブル
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID,
   name        TEXT NOT NULL,
@@ -41,8 +37,8 @@ CREATE TABLE payment_methods (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. 収支テーブル
-CREATE TABLE transactions (
+-- 4. 収支テーブル (メインデータ)
+CREATE TABLE IF NOT EXISTS transactions (
   id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id            UUID,
   date               DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -56,7 +52,7 @@ CREATE TABLE transactions (
   updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
--- アクセス制限（RLS）を完全に解除し、自由な読み書きを許可
+-- アクセス制限（RLS）の解除
 ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE subcategories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_methods DISABLE ROW LEVEL SECURITY;

@@ -125,19 +125,24 @@ export default function QuickInput({
       }
 
       const { error } = await supabase.from('transactions').insert(tx)
-      if (error) throw error
+      if (error) {
+        console.error('Supabase Insert Error:', error)
+        throw error
+      }
 
       // Reset form
       setAmountStr('')
       setMemo('')
       showToast('💾 保存しました！', true)
       onSaved()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      showToast('保存に失敗しました', false)
+      const errMsg = err?.message || '保存に失敗しました'
+      showToast(`保存失敗: ${errMsg}`, false)
     } finally {
       setSaving(false)
     }
+
   }
 
   function showToast(msg: string, ok: boolean) {

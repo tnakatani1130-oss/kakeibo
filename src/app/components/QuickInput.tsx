@@ -312,7 +312,32 @@ export default function QuickInput({
                 className={`amount-display${type === 'income' ? ' income' : ''}${amountStr === '' ? ' placeholder' : ''}`}
                 style={{ minHeight: 'unset', padding: 0, justifyContent: 'flex-start', fontSize: 36 }}
               >
-                ¥{formattedAmount}
+                <span>¥</span>
+                <input
+                  id="amount-direct-input"
+                  type="number"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  value={amountStr}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '')
+                    if (val.length <= 8) {
+                      setAmountStr(val)
+                    }
+                  }}
+                  placeholder="0"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'inherit',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    fontWeight: 'inherit',
+                    width: '100%',
+                    caretColor: 'var(--accent-purple)',
+                  }}
+                />
               </div>
             </div>
 

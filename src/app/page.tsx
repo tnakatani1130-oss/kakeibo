@@ -279,8 +279,8 @@ export default function Home() {
     )
   }
 
-  // ─── Auth Error Screen ───
-  if (authError || !userId) {
+  // ─── Auth Error Screen or Empty Master Screen ───
+  if (authError || !userId || (categories.length === 0 && !loading)) {
     return (
       <div
         style={{
@@ -296,29 +296,29 @@ export default function Home() {
       >
         <div style={{ fontSize: 48 }}>⚙️</div>
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 800 }}>
-          Supabase 設定が必要です
+          {categories.length === 0 ? '初期データを準備中...' : 'Supabase 設定が必要です'}
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7 }}>
-          <code
-            style={{
-              background: 'var(--bg-glass)',
-              padding: '2px 6px',
-              borderRadius: 4,
-              fontSize: 12,
-            }}
-          >
-            .env.local
-          </code>{' '}
-          にSupabaseのURLとAnon Keyを設定し、
-          <br />
-          Supabaseで匿名ログインを有効にしてください。
-          <br /><br />
-          その後、<code style={{ background: 'var(--bg-glass)', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>schema.sql</code> を
-          <br />
-          Supabase SQL Editorで実行してください。
+          {categories.length === 0
+            ? 'カテゴリや支払い方法を準備しています。下のボタンを押して初期データをロードしてください。'
+            : '.env.local にSupabaseのURLとAnon Keyを設定し、Supabaseで匿名ログインを有効にしてください。'}
         </p>
         <button
-          onClick={() => initialize()}
+          onClick={async () => {
+            setLoading(true)
+            // 匿名サインインをリセット再試行
+            await supabase.auth.signOut()
+            const { data } = await supabase.auth.signInAnonymously()
+            if (data?.user) {
+              setUserId(data.user.id)
+              await ensureDefaultData(supabase, data.user.id)
+              const master = await fetchMasterData(supabase, data.user.id)
+              setCategories(master.categories)
+              setSubcategories(master.subcategories)
+              setPaymentMethods(master.paymentMethods)
+            }
+            setLoading(false)
+          }}
           style={{
             marginTop: 8,
             padding: '12px 28px',
@@ -331,11 +331,12 @@ export default function Home() {
             cursor: 'pointer',
           }}
         >
-          再試行
+          🔄 初期データをロード・再作成する
         </button>
       </div>
     )
   }
+
 
   // ─── Main App ───
   return (

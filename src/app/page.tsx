@@ -316,16 +316,25 @@ export default function Home() {
         <Dashboard
           transactions={transactions}
           categories={categories}
+          subcategories={subcategories}
+          paymentMethods={paymentMethods}
           summary={summary}
           currentYearMonth={currentYM}
           onChangeYearMonth={(ym) => setCurrentYM(ym)}
-          onDeleted={refreshData}
+          onUpdated={refreshData}
+          onRefreshMaster={async () => {
+            const master = await fetchMasterData(supabase)
+            setCategories(master.categories)
+            setSubcategories(master.subcategories)
+            setPaymentMethods(master.paymentMethods)
+          }}
           onNavigateToInputWithDate={(dateStr) => {
             setInputInitialDate(dateStr)
             setActiveTab('input')
           }}
         />
       )}
+
 
       {/* ボトムナビゲーション */}
       <nav className="nav-bar">

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import type { Transaction, Category, MonthlySummary } from '@/types'
+import type { Transaction, Category, Subcategory, PaymentMethod, MonthlySummary } from '@/types'
 import { createClient } from '@/lib/supabase'
 import DonutChart from './DonutChart'
+import EditTransactionModal from './EditTransactionModal'
 
 function formatAmount(n: number): string {
   return n.toLocaleString('ja-JP')
@@ -12,33 +13,40 @@ function formatAmount(n: number): string {
 interface DashboardProps {
   transactions: Transaction[]
   categories: Category[]
+  subcategories: Subcategory[]
+  paymentMethods: PaymentMethod[]
   summary: MonthlySummary
   currentYearMonth: string // "YYYY-MM"
   onChangeYearMonth: (ym: string) => void
-  onDeleted: () => void
+  onUpdated: () => void
+  onRefreshMaster: () => void
   onNavigateToInputWithDate: (dateStr: string) => void
 }
 
 export default function Dashboard({
   transactions,
   categories,
+  subcategories,
+  paymentMethods,
   summary,
   currentYearMonth,
   onChangeYearMonth,
-  onDeleted,
+  onUpdated,
+  onRefreshMaster,
   onNavigateToInputWithDate,
 }: DashboardProps) {
   const supabase = createClient()
   const [subTab, setSubTab] = useState<'chart' | 'calendar' | 'list'>('chart')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   
-  // 削除確認モーダル用の選ばれたTransaction
+  // 編集用・削除用の Transaction
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null)
   const [pendingDeleteTx, setPendingDeleteTx] = useState<Transaction | null>(null)
   
   // カレンダータップで選択された日付のモーダル
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null)
 
-  // 年月を操作 (前月 / 次月)
+  // 年月を操作
   const handlePrevMonth = () => {
     const [y, m] = currentYearMonth.split('-').map(Number)
     const prevDate = new Date(y, m - 2, 1)
@@ -60,7 +68,7 @@ export default function Dashboard({
     try {
       await supabase.from('transactions').delete().eq('id', pendingDeleteTx.id)
       setPendingDeleteTx(null)
-      onDeleted()
+      onUpdated()
     } catch (err) {
       console.error('Delete tx error:', err)
     } finally {
@@ -68,7 +76,6 @@ export default function Dashboard({
     }
   }
 
-  // ── カレンダー日付マッピング計算 ──
   const [year, month] = currentYearMonth.split('-').map(Number)
   const firstDay = new Date(year, month - 1, 1)
   const lastDay = new Date(year, month, 0)
@@ -124,7 +131,7 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* ── サブタブ切り替え (円グラフ / カレンダー / 明細リスト) ── */}
+      {/* ── サブタブ切り替え ── */}
       <div className="px-4">
         <div className="type-toggle">
           <button className={`type-btn ${subTab === 'chart' ? 'active-expense' : ''}`} onClick={() => setSubTab('chart')}>
@@ -139,7 +146,7 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* ── 月間収支サマリーカード ── */}
+      {/* ── サマリーカード ── */}
       <div className="px-4">
         <div className="summary-card">
           <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>
@@ -264,7 +271,7 @@ export default function Dashboard({
             </div>
           ) : (
             monthlyTx.map((tx) => (
-              <div key={tx.id} className="tx-item">
+              <div key={tx.id} className="tx-item" onClick={() => setEditingTx(tx)}>
                 <div
                   className="tx-icon"
                   style={{
@@ -286,12 +293,27 @@ export default function Dashboard({
                 <div className={`tx-amount ${tx.type}`}>
                   {tx.type === 'expense' ? '-' : '+'}¥{formatAmount(tx.amount)}
                 </div>
-                <button
-                  className="tx-delete-btn"
-                  onClick={() => setPendingDeleteTx(tx)}
-                >
-                  🗑️
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    className="tx-delete-btn"
+                    style={{ color: 'var(--accent-purple)', borderColor: 'rgba(139, 92, 246, 0.3)' }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingTx(tx)
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="tx-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPendingDeleteTx(tx)
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -330,7 +352,7 @@ export default function Dashboard({
                 </div>
               ) : (
                 selectedDayTxs.map((tx) => (
-                  <div key={tx.id} className="tx-item" style={{ padding: 10 }}>
+                  <div key={tx.id} className="tx-item" style={{ padding: 10 }} onClick={() => setEditingTx(tx)}>
                     <span style={{ fontSize: 20 }}>{tx.category?.icon || '💸'}</span>
                     <div className="tx-info">
                       <div className="tx-cat" style={{ fontSize: 13 }}>
@@ -342,13 +364,28 @@ export default function Dashboard({
                     <div className={`tx-amount ${tx.type}`} style={{ fontSize: 14 }}>
                       {tx.type === 'expense' ? '-' : '+'}¥{formatAmount(tx.amount)}
                     </div>
-                    <button
-                      className="tx-delete-btn"
-                      style={{ padding: '4px 6px', fontSize: 12 }}
-                      onClick={() => setPendingDeleteTx(tx)}
-                    >
-                      🗑️
-                    </button>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        className="tx-delete-btn"
+                        style={{ padding: '4px 6px', fontSize: 12, color: 'var(--accent-purple)', borderColor: 'rgba(139, 92, 246, 0.3)' }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingTx(tx)
+                        }}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="tx-delete-btn"
+                        style={{ padding: '4px 6px', fontSize: 12 }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setPendingDeleteTx(tx)
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -356,6 +393,18 @@ export default function Dashboard({
           </div>
         </div>
       )}
+
+      {/* ── ✏️ 編集モーダル ── */}
+      <EditTransactionModal
+        isOpen={!!editingTx}
+        onClose={() => setEditingTx(null)}
+        transaction={editingTx}
+        categories={categories}
+        subcategories={subcategories}
+        paymentMethods={paymentMethods}
+        onUpdated={onUpdated}
+        onRefreshMaster={onRefreshMaster}
+      />
 
       {/* ── 🛡️ 安全削除確認モーダル ── */}
       {pendingDeleteTx && (

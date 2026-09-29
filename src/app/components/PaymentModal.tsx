@@ -1,6 +1,22 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { PaymentMethod } from '@/types'
 import { createClient } from '@/lib/supabase'
 
@@ -15,6 +31,62 @@ interface PaymentModalProps {
 
 const DEFAULT_ICONS = ['💵', '💳', '📱', '🏦', '🪙', '🎁', '🎫']
 
+// ── ソータブル行コンポーネント ──────────────────────────────────
+interface SortablePayRowProps {
+  pm: PaymentMethod
+  onDelete: (id: string, name: string) => void
+}
+
+function SortablePayRow({ pm, onDelete }: SortablePayRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pm.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    display: 'flex',
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    background: isDragging ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-glass)',
+    padding: '10px 14px',
+    borderRadius: 10,
+    border: `1px solid ${isDragging ? 'var(--accent-purple)' : 'var(--border-subtle)'}`,
+    touchAction: 'none' as const,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* ドラッグハンドル */}
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            cursor: 'grab',
+            padding: '4px 6px',
+            color: 'var(--text-muted)',
+            fontSize: 16,
+            userSelect: 'none',
+            touchAction: 'none',
+          }}
+          title="長押し／ドラッグで並び替え"
+        >
+          ⠿
+        </div>
+        <span style={{ fontSize: 20 }}>{pm.icon || '💳'}</span>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>{pm.name}</span>
+      </div>
+      <button
+        style={{ background: 'none', border: 'none', color: '#FF6B6B', fontSize: 13, cursor: 'pointer' }}
+        onClick={() => onDelete(pm.id, pm.name)}
+      >
+        削除
+      </button>
+    </div>
+  )
+}
+
+// ── メインコンポーネント ───────────────────────────────────────────
 export default function PaymentModal({
   isOpen,
   onClose,
@@ -28,6 +100,12 @@ export default function PaymentModal({
   const [isCreating, setIsCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [newIcon, setNewIcon] = useState('💳')
+
+  // dnd-kit sensors: マウス＋タッチ（長押し250msでアクティブ化）
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  )
 
   if (!isOpen) return null
 
@@ -57,16 +135,21 @@ export default function PaymentModal({
     }
   }
 
-  const handleMovePayment = async (idx: number, dir: 'up' | 'down') => {
-    const targetIdx = dir === 'up' ? idx - 1 : idx + 1
-    if (targetIdx < 0 || targetIdx >= paymentMethods.length) return
-    const a = paymentMethods[idx]
-    const b = paymentMethods[targetIdx]
+  // ドラッグ終了時: sort_order を一括更新
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIdx = paymentMethods.findIndex((p) => p.id === active.id)
+    const newIdx = paymentMethods.findIndex((p) => p.id === over.id)
+    const reordered = arrayMove(paymentMethods, oldIdx, newIdx)
+
     try {
-      await Promise.all([
-        supabase.from('payment_methods').update({ sort_order: b.sort_order }).eq('id', a.id),
-        supabase.from('payment_methods').update({ sort_order: a.sort_order }).eq('id', b.id),
-      ])
+      await Promise.all(
+        reordered.map((pm, idx) =>
+          supabase.from('payment_methods').update({ sort_order: idx + 1 }).eq('id', pm.id)
+        )
+      )
       onRefresh()
     } catch (err) {
       console.error('PaymentMethod reorder error:', err)
@@ -121,7 +204,7 @@ export default function PaymentModal({
           </div>
         )}
 
-        {/* ── MANAGE MODE (編集・追加・削除) ── */}
+        {/* ── MANAGE MODE ── */}
         {activeTab === 'manage' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '60vh', overflowY: 'auto' }}>
             {!isCreating ? (
@@ -180,51 +263,19 @@ export default function PaymentModal({
               </div>
             )}
 
-            {/* 一覧 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {paymentMethods.map((pm, pmIdx) => (
-                <div
-                  key={pm.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'var(--bg-glass)',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {/* 並び替えボタン */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <button
-                        style={{ background: 'none', border: 'none', color: pmIdx === 0 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: pmIdx === 0 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
-                        disabled={pmIdx === 0}
-                        onClick={() => handleMovePayment(pmIdx, 'up')}
-                      >
-                        ▲
-                      </button>
-                      <button
-                        style={{ background: 'none', border: 'none', color: pmIdx === paymentMethods.length - 1 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: pmIdx === paymentMethods.length - 1 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
-                        disabled={pmIdx === paymentMethods.length - 1}
-                        onClick={() => handleMovePayment(pmIdx, 'down')}
-                      >
-                        ▼
-                      </button>
-                    </div>
-                    <span style={{ fontSize: 20 }}>{pm.icon || '💳'}</span>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{pm.name}</span>
-                  </div>
-                  <button
-                    style={{ background: 'none', border: 'none', color: '#FF6B6B', fontSize: 13, cursor: 'pointer' }}
-                    onClick={() => handleDelete(pm.id, pm.name)}
-                  >
-                    削除
-                  </button>
-                </div>
-              ))}
+            {/* ドラッグ可能な一覧 */}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+              ⠿ をドラッグ（長押し）して並び替えできます
             </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={paymentMethods.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {paymentMethods.map((pm) => (
+                    <SortablePayRow key={pm.id} pm={pm} onDelete={handleDelete} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </div>

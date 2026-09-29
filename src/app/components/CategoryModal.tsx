@@ -1,6 +1,22 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { Category, Subcategory, TransactionType } from '@/types'
 import { createClient } from '@/lib/supabase'
 
@@ -21,6 +37,135 @@ const DEFAULT_COLORS = ['#FF6B6B', '#4ECDC4', '#A78BFA', '#F59E0B', '#3B82F6', '
 
 const INCOME_NAMES = ['給与', '一時所得', '事業・副業', '年金', '配当所得', '不動産所得', '不明な入金', 'その他入金']
 
+// ── ソータブル行コンポーネント ──────────────────────────────────
+interface SortableCatRowProps {
+  cat: Category
+  subs: Subcategory[]
+  isIncomeMode: boolean
+  addingSubCatId: string | null
+  newSubName: string
+  onSetAddingSubCatId: (id: string | null) => void
+  onSetNewSubName: (v: string) => void
+  onDeleteCategory: (id: string, name: string) => void
+  onDeleteSubcategory: (id: string) => void
+  onCreateSubcategory: (catId: string) => void
+}
+
+function SortableCatRow({
+  cat,
+  subs,
+  isIncomeMode,
+  addingSubCatId,
+  newSubName,
+  onSetAddingSubCatId,
+  onSetNewSubName,
+  onDeleteCategory,
+  onDeleteSubcategory,
+  onCreateSubcategory,
+}: SortableCatRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    background: isDragging ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-glass)',
+    border: `1px solid ${isDragging ? 'var(--accent-purple)' : 'var(--border-subtle)'}`,
+    padding: 12,
+    borderRadius: 12,
+    touchAction: 'none',
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+          {/* ドラッグハンドル */}
+          <div
+            {...attributes}
+            {...listeners}
+            style={{
+              cursor: 'grab',
+              padding: '4px 6px',
+              color: 'var(--text-muted)',
+              fontSize: 16,
+              userSelect: 'none',
+              touchAction: 'none',
+            }}
+            title="長押し／ドラッグで並び替え"
+          >
+            ⠿
+          </div>
+          <span style={{ fontSize: 20 }}>{cat.icon || '📁'}</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{cat.name}</span>
+        </div>
+        <button
+          style={{ background: 'none', border: 'none', color: '#FF6B6B', fontSize: 13, cursor: 'pointer' }}
+          onClick={() => onDeleteCategory(cat.id, cat.name)}
+        >
+          削除
+        </button>
+      </div>
+
+      {/* 中カテゴリ管理 (支出モードのみ) */}
+      {!isIncomeMode && (
+        <div style={{ marginTop: 8, paddingLeft: 8, borderLeft: '2px solid var(--border-subtle)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>中カテゴリ (詳細項目)</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {subs.map((s) => (
+              <span
+                key={s.id}
+                style={{
+                  background: 'var(--bg-dark)',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {s.name}
+                <button
+                  style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10 }}
+                  onClick={() => onDeleteSubcategory(s.id)}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            {addingSubCatId !== cat.id ? (
+              <button
+                style={{ background: 'none', border: '1px dashed var(--border-subtle)', color: 'var(--text-muted)', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}
+                onClick={() => onSetAddingSubCatId(cat.id)}
+              >
+                ＋ 中カテゴリ追加
+              </button>
+            ) : (
+              <div style={{ display: 'inline-flex', gap: 4 }}>
+                <input
+                  type="text"
+                  placeholder="項目名"
+                  value={newSubName}
+                  onChange={(e) => onSetNewSubName(e.target.value)}
+                  style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'white', width: 100 }}
+                />
+                <button className="btn-primary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => onCreateSubcategory(cat.id)}>
+                  追加
+                </button>
+                <button className="chip" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => onSetAddingSubCatId(null)}>
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── メインコンポーネント ───────────────────────────────────────────
 export default function CategoryModal({
   isOpen,
   onClose,
@@ -35,30 +180,30 @@ export default function CategoryModal({
   const supabase = createClient()
   const [activeTab, setActiveTab] = useState<'select' | 'manage'>('select')
   const [tempCatId, setTempCatId] = useState<string | null>(selectedCatId)
-  
-  // 新規作成用フォーム
+
   const [isCreating, setIsCreating] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [newCatIcon, setNewCatIcon] = useState('📦')
   const [newCatColor, setNewCatColor] = useState('#8B5CF6')
-  
+
   const [newSubName, setNewSubName] = useState('')
   const [addingSubCatId, setAddingSubCatId] = useState<string | null>(null)
 
+  // dnd-kit sensors: マウス＋タッチ（長押し250msでアクティブ化）
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  )
+
   if (!isOpen) return null
 
-  // 収支タイプ (支出 vs 収入) によるフィルタリング
   const isIncomeMode = txType === 'income'
   const filteredCategories = categories.filter((cat) => {
     const isInc = cat.type === 'income' || INCOME_NAMES.includes(cat.name)
     return isIncomeMode ? isInc : !isInc
   })
 
-  // 現在展開中の大カテゴリ
-  const currentCat = categories.find((c) => c.id === tempCatId)
-  const currentSubs = subcategories.filter((s) => s.category_id === tempCatId)
-
-  // カテゴリ新規作成
+  // ── ハンドラ ────────────────────────────────────────────────────
   const handleCreateCategory = async () => {
     if (!newCatName.trim()) return
     try {
@@ -77,7 +222,6 @@ export default function CategoryModal({
     }
   }
 
-  // カテゴリ削除
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`「${name}」カテゴリを削除しますか？`)) return
     try {
@@ -89,7 +233,6 @@ export default function CategoryModal({
     }
   }
 
-  // サブカテゴリ新規作成
   const handleCreateSubcategory = async (catId: string) => {
     if (!newSubName.trim()) return
     try {
@@ -106,7 +249,6 @@ export default function CategoryModal({
     }
   }
 
-  // サブカテゴリ削除
   const handleDeleteSubcategory = async (id: string) => {
     try {
       await supabase.from('subcategories').delete().eq('id', id)
@@ -116,18 +258,21 @@ export default function CategoryModal({
     }
   }
 
-  // 大カテゴリ順序入れ替え
-  const handleMoveCategory = async (idx: number, dir: 'up' | 'down') => {
-    const list = [...filteredCategories]
-    const targetIdx = dir === 'up' ? idx - 1 : idx + 1
-    if (targetIdx < 0 || targetIdx >= list.length) return
-    const a = list[idx]
-    const b = list[targetIdx]
+  // ドラッグ終了時: sort_order を一括更新
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIdx = filteredCategories.findIndex((c) => c.id === active.id)
+    const newIdx = filteredCategories.findIndex((c) => c.id === over.id)
+    const reordered = arrayMove(filteredCategories, oldIdx, newIdx)
+
     try {
-      await Promise.all([
-        supabase.from('categories').update({ sort_order: b.sort_order }).eq('id', a.id),
-        supabase.from('categories').update({ sort_order: a.sort_order }).eq('id', b.id),
-      ])
+      await Promise.all(
+        reordered.map((cat, idx) =>
+          supabase.from('categories').update({ sort_order: idx + 1 }).eq('id', cat.id)
+        )
+      )
       onRefresh()
     } catch (err) {
       console.error('Category reorder error:', err)
@@ -167,7 +312,6 @@ export default function CategoryModal({
               {isIncomeMode ? '収入カテゴリをタップして選択' : '大カテゴリをタップすると真下に詳細カテゴリが開きます'}
             </div>
 
-            {/* 各カテゴリのアコーディオンリスト */}
             <div
               style={{
                 display: 'flex',
@@ -184,7 +328,6 @@ export default function CategoryModal({
 
                 return (
                   <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {/* 大カテゴリ行 */}
                     <button
                       style={{
                         display: 'flex',
@@ -233,7 +376,6 @@ export default function CategoryModal({
                       )}
                     </button>
 
-                    {/* 大カテゴリ項目の「すぐ真下」に展開される詳細カテゴリ選択肢 */}
                     {!isIncomeMode && isExpanded && (
                       <div
                         style={{
@@ -252,7 +394,6 @@ export default function CategoryModal({
                           「{cat.name}」の詳細カテゴリを選択してください:
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {/* 指定なし（全般） */}
                           <button
                             className={`chip ${selectedCatId === cat.id && selectedSubId === null ? 'selected' : ''}`}
                             style={{
@@ -268,7 +409,6 @@ export default function CategoryModal({
                             指定なし（{cat.name} 全般）
                           </button>
 
-                          {/* サブカテゴリ/詳細カテゴリ一覧 */}
                           {catSubs.map((sub) => {
                             const isSelected = selectedCatId === cat.id && selectedSubId === sub.id
                             return (
@@ -302,7 +442,7 @@ export default function CategoryModal({
           </div>
         )}
 
-        {/* ── MANAGE MODE (編集・追加・削除) ── */}
+        {/* ── MANAGE MODE ── */}
         {activeTab === 'manage' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '60vh', overflowY: 'auto' }}>
             {!isCreating ? (
@@ -361,108 +501,31 @@ export default function CategoryModal({
               </div>
             )}
 
-            {/* カテゴリ一覧 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {filteredCategories.map((cat, catIdx) => {
-                const subs = subcategories.filter((s) => s.category_id === cat.id)
-                return (
-                  <div
-                    key={cat.id}
-                    style={{
-                      background: 'var(--bg-glass)',
-                      padding: 12,
-                      borderRadius: 12,
-                      border: '1px solid var(--border-subtle)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {/* 並び替えボタン */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <button
-                            style={{ background: 'none', border: 'none', color: catIdx === 0 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: catIdx === 0 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
-                            disabled={catIdx === 0}
-                            onClick={() => handleMoveCategory(catIdx, 'up')}
-                          >
-                            ▲
-                          </button>
-                          <button
-                            style={{ background: 'none', border: 'none', color: catIdx === filteredCategories.length - 1 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: catIdx === filteredCategories.length - 1 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
-                            disabled={catIdx === filteredCategories.length - 1}
-                            onClick={() => handleMoveCategory(catIdx, 'down')}
-                          >
-                            ▼
-                          </button>
-                        </div>
-                        <span style={{ fontSize: 20 }}>{cat.icon || '📁'}</span>
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>{cat.name}</span>
-                      </div>
-                      <button
-                        style={{ background: 'none', border: 'none', color: '#FF6B6B', fontSize: 13, cursor: 'pointer' }}
-                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                      >
-                        削除
-                      </button>
-                    </div>
-
-                    {/* 中カテゴリ管理 (支出モードのみ) */}
-                    {!isIncomeMode && (
-                      <div style={{ marginTop: 8, paddingLeft: 8, borderLeft: '2px solid var(--border-subtle)' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>中カテゴリ (詳細項目)</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {subs.map((s) => (
-                            <span
-                              key={s.id}
-                              style={{
-                                background: 'var(--bg-dark)',
-                                padding: '2px 8px',
-                                borderRadius: 4,
-                                fontSize: 12,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                              }}
-                            >
-                              {s.name}
-                              <button
-                                style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10 }}
-                                onClick={() => handleDeleteSubcategory(s.id)}
-                              >
-                                ✕
-                              </button>
-                            </span>
-                          ))}
-                          {addingSubCatId !== cat.id ? (
-                            <button
-                              style={{ background: 'none', border: '1px dashed var(--border-subtle)', color: 'var(--text-muted)', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}
-                              onClick={() => setAddingSubCatId(cat.id)}
-                            >
-                              ＋ 中カテゴリ追加
-                            </button>
-                          ) : (
-                            <div style={{ display: 'inline-flex', gap: 4 }}>
-                              <input
-                                type="text"
-                                placeholder="項目名"
-                                value={newSubName}
-                                onChange={(e) => setNewSubName(e.target.value)}
-                                style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'white', width: 100 }}
-                              />
-                              <button className="btn-primary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => handleCreateSubcategory(cat.id)}>
-                                追加
-                              </button>
-                              <button className="chip" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setAddingSubCatId(null)}>
-                                ✕
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+            {/* ドラッグ可能なカテゴリ一覧 */}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+              ⠿ をドラッグ（長押し）して並び替えできます
             </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={filteredCategories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {filteredCategories.map((cat) => (
+                    <SortableCatRow
+                      key={cat.id}
+                      cat={cat}
+                      subs={subcategories.filter((s) => s.category_id === cat.id)}
+                      isIncomeMode={isIncomeMode}
+                      addingSubCatId={addingSubCatId}
+                      newSubName={newSubName}
+                      onSetAddingSubCatId={setAddingSubCatId}
+                      onSetNewSubName={setNewSubName}
+                      onDeleteCategory={handleDeleteCategory}
+                      onDeleteSubcategory={handleDeleteSubcategory}
+                      onCreateSubcategory={handleCreateSubcategory}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </div>

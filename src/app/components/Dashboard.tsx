@@ -214,43 +214,6 @@ export default function Dashboard({
       {subTab === 'chart' && (
         <div className="px-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="glass-card" style={{ padding: 20 }}>
-            {/* 円グラフ上の収支ハイライト */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                background: 'var(--bg-glass)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                marginBottom: 16,
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>当月収入</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#10B981' }}>¥{formatAmount(summary.totalIncome)}</div>
-              </div>
-              <div style={{ fontSize: 16, color: 'var(--text-muted)' }}>-</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>当月支出</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#FF6B6B' }}>¥{formatAmount(summary.totalExpense)}</div>
-              </div>
-              <div style={{ fontSize: 16, color: 'var(--text-muted)' }}>=</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>収支</div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: summary.totalIncome - summary.totalExpense >= 0 ? 'var(--accent-purple)' : '#FF6B6B',
-                  }}
-                >
-                  {summary.totalIncome - summary.totalExpense >= 0 ? '+' : ''}¥{formatAmount(summary.totalIncome - summary.totalExpense)}
-                </div>
-              </div>
-            </div>
-
             <DonutChart
               data={summary.byCategory}
               totalExpense={summary.totalExpense}

@@ -212,83 +212,7 @@ export default function QuickInput({
           </div>
         </div>
 
-        {/* 3. ポップアップ選択（カテゴリ & 支払い方法） */}
-        <div className="px-4" style={{ display: 'flex', gap: 10 }}>
-          {/* カテゴリ選択ボタン */}
-          <button
-            onClick={() => setIsCatModalOpen(true)}
-            style={{
-              flex: 1,
-              padding: '12px 14px',
-              background: currentCat ? `${currentCat.color || '#8B5CF6'}20` : 'var(--bg-glass)',
-              border: `1.5px solid ${currentCat ? currentCat.color || 'var(--accent-purple)' : 'var(--border-subtle)'}`,
-              borderRadius: 'var(--radius-md)',
-              color: 'white',
-              textAlign: 'left',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
-                {type === 'income' ? '収入カテゴリ' : 'カテゴリ'}
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>{currentCat ? currentCat.icon || '📁' : '📁'}</span>
-                <span>{currentCat ? currentCat.name : '選択してください'}</span>
-              </div>
-              {currentSub && type !== 'income' && (
-                <div style={{ fontSize: 11, color: 'var(--accent-pink)', marginTop: 2, fontWeight: 500 }}>
-                  タグ: {currentSub.name}
-                </div>
-              )}
-            </div>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>▼</span>
-          </button>
-
-          {/* 支払い方法選択ボタン */}
-          <button
-            onClick={() => setIsPayModalOpen(true)}
-            style={{
-              flex: 1,
-              padding: '12px 14px',
-              background: 'var(--bg-glass)',
-              border: `1.5px solid ${currentPay ? 'var(--accent-purple)' : 'var(--border-subtle)'}`,
-              borderRadius: 'var(--radius-md)',
-              color: 'white',
-              textAlign: 'left',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>支払い方法</div>
-              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>{currentPay ? currentPay.icon || '💳' : '💳'}</span>
-                <span>{currentPay ? currentPay.name : '選択'}</span>
-              </div>
-            </div>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>▼</span>
-          </button>
-        </div>
-
-        {/* 4. メモ入力欄 */}
-        <div className="px-4">
-          <input
-            type="text"
-            className="memo-input"
-            placeholder="メモ・店名など（任意）"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            maxLength={100}
-          />
-        </div>
-
-        {/* 5. 【キーパッドのすぐ上に配置】金額表示 ＆ 電卓切替ボタン 🧮 */}
+        {/* 3. 【キーパッドのすぐ上に配置】金額表示 ＆ 電卓切替ボタン 🧮 */}
         <div className="px-4" style={{ marginTop: 4 }}>
           <div
             style={{
@@ -360,7 +284,7 @@ export default function QuickInput({
           </div>
         </div>
 
-        {/* 6. キーパッド (通常モード vs 電卓計算モード) */}
+        {/* 4. キーパッド (通常モード vs 電卓計算モード) */}
         {!isCalcMode ? (
           /* 通常テンキー */
           <div className="keypad">
@@ -406,6 +330,82 @@ export default function QuickInput({
             </button>
           </div>
         )}
+
+        {/* 5. ポップアップ選択（カテゴリ & 支払い方法） */}
+        <div className="px-4" style={{ display: 'flex', gap: 10 }}>
+          {/* カテゴリ選択ボタン */}
+          <button
+            onClick={() => setIsCatModalOpen(true)}
+            style={{
+              flex: 1,
+              padding: '12px 14px',
+              background: currentCat ? `${currentCat.color || '#8B5CF6'}20` : 'var(--bg-glass)',
+              border: `1.5px solid ${currentCat ? currentCat.color || 'var(--accent-purple)' : 'var(--border-subtle)'}`,
+              borderRadius: 'var(--radius-md)',
+              color: 'white',
+              textAlign: 'left',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
+                {type === 'income' ? '収入カテゴリ' : 'カテゴリ'}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>{currentCat ? currentCat.icon || '📁' : '📁'}</span>
+                <span>{currentCat ? currentCat.name : '選択してください'}</span>
+              </div>
+              {currentSub && type !== 'income' && (
+                <div style={{ fontSize: 11, color: 'var(--accent-pink)', marginTop: 2, fontWeight: 500 }}>
+                  タグ: {currentSub.name}
+                </div>
+              )}
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>▼</span>
+          </button>
+
+          {/* 支払い方法選択ボタン */}
+          <button
+            onClick={() => setIsPayModalOpen(true)}
+            style={{
+              flex: 1,
+              padding: '12px 14px',
+              background: 'var(--bg-glass)',
+              border: `1.5px solid ${currentPay ? 'var(--accent-purple)' : 'var(--border-subtle)'}`,
+              borderRadius: 'var(--radius-md)',
+              color: 'white',
+              textAlign: 'left',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>支払い方法</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>{currentPay ? currentPay.icon || '💳' : '💳'}</span>
+                <span>{currentPay ? currentPay.name : '選択'}</span>
+              </div>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>▼</span>
+          </button>
+        </div>
+
+        {/* 6. メモ入力欄 */}
+        <div className="px-4">
+          <input
+            type="text"
+            className="memo-input"
+            placeholder="メモ・店名など（任意）"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            maxLength={100}
+          />
+        </div>
 
         {/* 7. 記録するボタン */}
         <div className="px-4" style={{ paddingBottom: '8px' }}>

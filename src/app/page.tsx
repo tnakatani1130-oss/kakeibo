@@ -289,13 +289,6 @@ export default function Home() {
 
   return (
     <div className="app-container">
-      {/* ヘッダー */}
-      <div className="page-header">
-        <h1 className="page-title">
-          {activeTab === 'input' ? <span className="gradient-text">記録する</span> : <span className="gradient-text">履歴・分析</span>}
-        </h1>
-      </div>
-
       {/* メインコンテンツ */}
       {activeTab === 'input' && userId ? (
         <QuickInput

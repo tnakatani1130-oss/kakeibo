@@ -55,7 +55,7 @@ async function fetchMasterData(supabase: ReturnType<typeof createClient>) {
   }
 }
 
-async function fetchTransactions(supabase: ReturnType<typeof createClient>, userId: string) {
+async function fetchTransactions(supabase: ReturnType<typeof createClient>, _userId: string) {
   const { data } = await supabase
     .from('transactions')
     .select(`
@@ -64,10 +64,9 @@ async function fetchTransactions(supabase: ReturnType<typeof createClient>, user
       subcategory:subcategories(*),
       payment_method:payment_methods(*)
     `)
-    .eq('user_id', userId)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(300)
+    .limit(500)
 
   return (data ?? []) as Transaction[]
 }
@@ -289,6 +288,13 @@ export default function Home() {
 
   return (
     <div className="app-container">
+      {/* ヘッダー */}
+      <div className="page-header">
+        <h1 className="page-title">
+          {activeTab === 'input' ? <span className="gradient-text">記録する</span> : <span className="gradient-text">履歴・分析</span>}
+        </h1>
+      </div>
+
       {/* メインコンテンツ */}
       {activeTab === 'input' && userId ? (
         <QuickInput

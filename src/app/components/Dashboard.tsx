@@ -146,20 +146,38 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* ── サマリーカード ── */}
+      {/* ── サマリーカード（収支計算付き） ── */}
       <div className="px-4">
         <div className="summary-card">
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>
-            {year}年{month}月の収支
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8 }}>
+            {year}年{month}月の収支計算
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>支出</div>
-              <div className="summary-amount expense-color">¥{formatAmount(summary.totalExpense)}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, textAlign: 'center' }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '8px 4px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: 10, color: 'var(--accent-green)', fontWeight: 600 }}>収入</div>
+              <div className="summary-amount income-color" style={{ fontSize: 15, marginTop: 2 }}>
+                ¥{formatAmount(summary.totalIncome)}
+              </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>収入</div>
-              <div className="summary-amount income-color">¥{formatAmount(summary.totalIncome)}</div>
+            <div style={{ background: 'rgba(255, 107, 107, 0.1)', padding: '8px 4px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: 10, color: '#FF6B6B', fontWeight: 600 }}>支出</div>
+              <div className="summary-amount expense-color" style={{ fontSize: 15, marginTop: 2 }}>
+                ¥{formatAmount(summary.totalExpense)}
+              </div>
+            </div>
+            <div style={{ background: summary.totalIncome - summary.totalExpense >= 0 ? 'rgba(139, 92, 246, 0.1)' : 'rgba(239, 68, 68, 0.15)', padding: '8px 4px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>収支差額</div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  marginTop: 2,
+                  color: summary.totalIncome - summary.totalExpense >= 0 ? 'var(--accent-purple)' : '#FF6B6B',
+                }}
+              >
+                {summary.totalIncome - summary.totalExpense >= 0 ? '+' : ''}
+                ¥{formatAmount(summary.totalIncome - summary.totalExpense)}
+              </div>
             </div>
           </div>
         </div>
@@ -169,9 +187,47 @@ export default function Dashboard({
       {subTab === 'chart' && (
         <div className="px-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="glass-card" style={{ padding: 20 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>
               カテゴリ別 支出割合
             </h3>
+            
+            {/* 円グラフ上の収支ハイライト */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-around',
+                background: 'var(--bg-glass)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 14px',
+                marginBottom: 16,
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>当月収入</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#10B981' }}>¥{formatAmount(summary.totalIncome)}</div>
+              </div>
+              <div style={{ fontSize: 16, color: 'var(--text-muted)' }}>-</div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>当月支出</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#FF6B6B' }}>¥{formatAmount(summary.totalExpense)}</div>
+              </div>
+              <div style={{ fontSize: 16, color: 'var(--text-muted)' }}>=</div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>収支</div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: summary.totalIncome - summary.totalExpense >= 0 ? 'var(--accent-purple)' : '#FF6B6B',
+                  }}
+                >
+                  {summary.totalIncome - summary.totalExpense >= 0 ? '+' : ''}¥{formatAmount(summary.totalIncome - summary.totalExpense)}
+                </div>
+              </div>
+            </div>
+
             <DonutChart data={summary.byCategory} totalExpense={summary.totalExpense} />
           </div>
 

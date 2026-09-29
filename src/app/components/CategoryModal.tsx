@@ -116,6 +116,24 @@ export default function CategoryModal({
     }
   }
 
+  // 大カテゴリ順序入れ替え
+  const handleMoveCategory = async (idx: number, dir: 'up' | 'down') => {
+    const list = [...filteredCategories]
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (targetIdx < 0 || targetIdx >= list.length) return
+    const a = list[idx]
+    const b = list[targetIdx]
+    try {
+      await Promise.all([
+        supabase.from('categories').update({ sort_order: b.sort_order }).eq('id', a.id),
+        supabase.from('categories').update({ sort_order: a.sort_order }).eq('id', b.id),
+      ])
+      onRefresh()
+    } catch (err) {
+      console.error('Category reorder error:', err)
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content card-glass" onClick={(e) => e.stopPropagation()}>
@@ -345,7 +363,7 @@ export default function CategoryModal({
 
             {/* カテゴリ一覧 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {filteredCategories.map((cat) => {
+              {filteredCategories.map((cat, catIdx) => {
                 const subs = subcategories.filter((s) => s.category_id === cat.id)
                 return (
                   <div
@@ -359,6 +377,23 @@ export default function CategoryModal({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {/* 並び替えボタン */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <button
+                            style={{ background: 'none', border: 'none', color: catIdx === 0 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: catIdx === 0 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
+                            disabled={catIdx === 0}
+                            onClick={() => handleMoveCategory(catIdx, 'up')}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            style={{ background: 'none', border: 'none', color: catIdx === filteredCategories.length - 1 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: catIdx === filteredCategories.length - 1 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
+                            disabled={catIdx === filteredCategories.length - 1}
+                            onClick={() => handleMoveCategory(catIdx, 'down')}
+                          >
+                            ▼
+                          </button>
+                        </div>
                         <span style={{ fontSize: 20 }}>{cat.icon || '📁'}</span>
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{cat.name}</span>
                       </div>

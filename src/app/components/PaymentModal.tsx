@@ -57,6 +57,22 @@ export default function PaymentModal({
     }
   }
 
+  const handleMovePayment = async (idx: number, dir: 'up' | 'down') => {
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (targetIdx < 0 || targetIdx >= paymentMethods.length) return
+    const a = paymentMethods[idx]
+    const b = paymentMethods[targetIdx]
+    try {
+      await Promise.all([
+        supabase.from('payment_methods').update({ sort_order: b.sort_order }).eq('id', a.id),
+        supabase.from('payment_methods').update({ sort_order: a.sort_order }).eq('id', b.id),
+      ])
+      onRefresh()
+    } catch (err) {
+      console.error('PaymentMethod reorder error:', err)
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content card-glass" onClick={(e) => e.stopPropagation()}>
@@ -166,13 +182,12 @@ export default function PaymentModal({
 
             {/* 一覧 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {paymentMethods.map((pm) => (
+              {paymentMethods.map((pm, pmIdx) => (
                 <div
                   key={pm.id}
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-
                     alignItems: 'center',
                     background: 'var(--bg-glass)',
                     padding: '10px 14px',
@@ -181,6 +196,23 @@ export default function PaymentModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* 並び替えボタン */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <button
+                        style={{ background: 'none', border: 'none', color: pmIdx === 0 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: pmIdx === 0 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
+                        disabled={pmIdx === 0}
+                        onClick={() => handleMovePayment(pmIdx, 'up')}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        style={{ background: 'none', border: 'none', color: pmIdx === paymentMethods.length - 1 ? 'var(--border-subtle)' : 'var(--text-muted)', fontSize: 12, cursor: pmIdx === paymentMethods.length - 1 ? 'default' : 'pointer', lineHeight: 1, padding: '1px 2px' }}
+                        disabled={pmIdx === paymentMethods.length - 1}
+                        onClick={() => handleMovePayment(pmIdx, 'down')}
+                      >
+                        ▼
+                      </button>
+                    </div>
                     <span style={{ fontSize: 20 }}>{pm.icon || '💳'}</span>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{pm.name}</span>
                   </div>

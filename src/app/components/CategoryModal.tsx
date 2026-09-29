@@ -144,75 +144,143 @@ export default function CategoryModal({
 
         {/* ── SELECT MODE ── */}
         {activeTab === 'select' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Step 1: 大カテゴリ一覧 */}
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
-                {isIncomeMode ? '1. 収入カテゴリを選択' : '1. 大カテゴリを選択'}
-              </div>
-              <div className="category-grid">
-                {filteredCategories.map((cat) => {
-                  const isSelected = tempCatId === cat.id
-                  return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+              {isIncomeMode ? '収入カテゴリをタップして選択' : '大カテゴリをタップすると真下に詳細カテゴリが開きます'}
+            </div>
+
+            {/* 各カテゴリのアコーディオンリスト */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                maxHeight: '60vh',
+                overflowY: 'auto',
+                paddingRight: 4,
+              }}
+            >
+              {filteredCategories.map((cat) => {
+                const isExpanded = tempCatId === cat.id
+                const catSubs = subcategories.filter((s) => s.category_id === cat.id)
+
+                return (
+                  <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* 大カテゴリ行 */}
                     <button
-                      key={cat.id}
-                      className={`cat-card ${isSelected ? 'selected' : ''}`}
                       style={{
-                        borderColor: isSelected ? cat.color || 'var(--accent-pink)' : 'var(--border-subtle)',
-                        background: isSelected ? `${cat.color || '#8B5CF6'}25` : 'var(--bg-glass)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 16px',
+                        background: isExpanded ? `${cat.color || '#8B5CF6'}25` : 'var(--bg-glass)',
+                        border: `1.5px solid ${isExpanded ? cat.color || 'var(--accent-purple)' : 'var(--border-subtle)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        color: 'white',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
                       }}
                       onClick={() => {
-                        setTempCatId(cat.id)
-                        // 収入モードの場合はサブカテゴリが無いのでワンタップ即時決定！
                         if (isIncomeMode) {
                           onSelect(cat.id, null)
                           onClose()
+                        } else {
+                          setTempCatId(isExpanded ? null : cat.id)
                         }
                       }}
                     >
-                      <span style={{ fontSize: 24 }}>{cat.icon || '📁'}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>{cat.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 24 }}>{cat.icon || '📁'}</span>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700 }}>{cat.name}</div>
+                          {!isIncomeMode && (
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                              {catSubs.length > 0 ? `${catSubs.length}件の詳細項目` : '詳細項目なし'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {!isIncomeMode && (
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: 'var(--text-muted)',
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s ease',
+                          }}
+                        >
+                          ▼
+                        </span>
+                      )}
                     </button>
-                  )
-                })}
-              </div>
-            </div>
 
-            {/* Step 2: 中カテゴリ（支出モード ＆ 選択された大カテゴリがある場合） */}
-            {!isIncomeMode && tempCatId && (
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
-                  2. 「{currentCat?.name}」の詳細項目を選択
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                  <button
-                    className={`chip ${selectedCatId === tempCatId && selectedSubId === null ? 'selected' : ''}`}
-                    onClick={() => {
-                      onSelect(tempCatId, null)
-                      onClose()
-                    }}
-                  >
-                    指定なし（{currentCat?.name} 全般）
-                  </button>
-                  {currentSubs.map((sub) => {
-                    const isSelected = selectedCatId === tempCatId && selectedSubId === sub.id
-                    return (
-                      <button
-                        key={sub.id}
-                        className={`chip ${isSelected ? 'selected' : ''}`}
-                        onClick={() => {
-                          onSelect(tempCatId, sub.id)
-                          onClose()
+                    {/* 大カテゴリ項目の「すぐ真下」に展開される詳細カテゴリ選択肢 */}
+                    {!isIncomeMode && isExpanded && (
+                      <div
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: `1px dashed ${cat.color || 'var(--accent-purple)'}`,
+                          borderRadius: 'var(--radius-md)',
+                          padding: 12,
+                          marginLeft: 12,
+                          marginRight: 4,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10,
                         }}
                       >
-                        {sub.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+                        <div style={{ fontSize: 11, color: 'var(--accent-pink)', fontWeight: 600 }}>
+                          「{cat.name}」の詳細カテゴリを選択してください:
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {/* 指定なし（全般） */}
+                          <button
+                            className={`chip ${selectedCatId === cat.id && selectedSubId === null ? 'selected' : ''}`}
+                            style={{
+                              fontSize: 12,
+                              padding: '6px 14px',
+                              fontWeight: selectedCatId === cat.id && selectedSubId === null ? 700 : 500,
+                            }}
+                            onClick={() => {
+                              onSelect(cat.id, null)
+                              onClose()
+                            }}
+                          >
+                            指定なし（{cat.name} 全般）
+                          </button>
+
+                          {/* サブカテゴリ/詳細カテゴリ一覧 */}
+                          {catSubs.map((sub) => {
+                            const isSelected = selectedCatId === cat.id && selectedSubId === sub.id
+                            return (
+                              <button
+                                key={sub.id}
+                                className={`chip ${isSelected ? 'selected' : ''}`}
+                                style={{
+                                  fontSize: 12,
+                                  padding: '6px 14px',
+                                  background: isSelected ? 'rgba(236, 72, 153, 0.3)' : 'var(--bg-glass)',
+                                  borderColor: isSelected ? 'var(--accent-pink)' : 'var(--border-subtle)',
+                                  color: isSelected ? 'white' : 'var(--text-primary)',
+                                  fontWeight: isSelected ? 700 : 500,
+                                }}
+                                onClick={() => {
+                                  onSelect(cat.id, sub.id)
+                                  onClose()
+                                }}
+                              >
+                                {sub.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

@@ -212,21 +212,44 @@ export default function QuickInput({
           </div>
         </div>
 
-        {/* 3. 【キーパッドのすぐ上に配置】金額表示 ＆ 電卓切替ボタン 🧮 */}
+        {/* 3. 【おカネレコ風 ヘッダー】電卓マーク ＆ 金額入力エリア */}
         <div className="px-4" style={{ marginTop: 4 }}>
           <div
             style={{
               background: 'var(--bg-glass)',
               border: `1.5px solid ${isCalcMode ? 'var(--accent-pink)' : 'var(--border-subtle)'}`,
               borderRadius: 'var(--radius-md)',
-              padding: '10px 16px',
+              padding: '8px 12px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              position: 'relative',
+              gap: 12,
             }}
           >
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* 電卓マークボタン */}
+            <button
+              className={`chip ${isCalcMode ? 'selected' : ''}`}
+              style={{
+                padding: '8px 12px',
+                fontSize: 14,
+                fontWeight: 700,
+                borderColor: isCalcMode ? 'var(--accent-pink)' : 'var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              onClick={() => {
+                setIsCalcMode(!isCalcMode)
+                setCalcFormula(amountStr)
+              }}
+              title="電卓モード切り替え"
+            >
+              🧮 {isCalcMode ? '電卓' : '電卓'}
+            </button>
+
+            {/* 金額入力エリア */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {isCalcMode && calcFormula && (
                 <div style={{ fontSize: 12, color: 'var(--accent-pink)', fontFamily: 'var(--font-heading)' }}>
                   {calcFormula} =
@@ -234,9 +257,9 @@ export default function QuickInput({
               )}
               <div
                 className={`amount-display${type === 'income' ? ' income' : ''}${amountStr === '' ? ' placeholder' : ''}`}
-                style={{ minHeight: 'unset', padding: 0, justifyContent: 'flex-start', fontSize: 36 }}
+                style={{ minHeight: 'unset', padding: 0, justifyContent: 'flex-start', fontSize: 32 }}
               >
-                <span>¥</span>
+                <span style={{ marginRight: 4 }}>¥</span>
                 <input
                   id="amount-direct-input"
                   type="number"
@@ -265,43 +288,114 @@ export default function QuickInput({
               </div>
             </div>
 
-            {/* 電卓切替ボタン 🧮 */}
-            <button
-              className={`chip ${isCalcMode ? 'selected' : ''}`}
-              style={{
-                padding: '8px 12px',
-                fontSize: 13,
-                fontWeight: 600,
-                borderColor: isCalcMode ? 'var(--accent-pink)' : 'var(--border-subtle)',
-              }}
-              onClick={() => {
-                setIsCalcMode(!isCalcMode)
-                setCalcFormula(amountStr)
-              }}
-            >
-              🧮 {isCalcMode ? '通常' : '電卓'}
-            </button>
+            {/* ⌫ 削除ボタン */}
+            {amountStr && (
+              <button
+                onClick={() => pressKey('DEL')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title="1文字削除"
+              >
+                <BackspaceIcon />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* 4. キーパッド (通常モード vs 電卓計算モード) */}
+        {/* 隠しカメラファイルインプット */}
+        <input
+          id="camera-file-input"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              showToast('📷 レシート画像を添付しました', true)
+            }
+          }}
+        />
+
+        {/* 4. キーパッド (おカネレコ構成) */}
         {!isCalcMode ? (
-          /* 通常テンキー */
-          <div className="keypad">
-            {['7', '8', '9', '4', '5', '6', '1', '2', '3'].map((k) => (
-              <button key={k} className="key-btn" onClick={() => pressKey(k)}>
-                {k}
-              </button>
-            ))}
-            <button className="key-btn key-zero" onClick={() => pressKey('00')}>
-              00
+          /* 通常テンキー (4列 × 4行構成) */
+          <div className="keypad" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {/* 行 1 */}
+            <button className="key-btn" onClick={() => pressKey('7')}>7</button>
+            <button className="key-btn" onClick={() => pressKey('8')}>8</button>
+            <button className="key-btn" onClick={() => pressKey('9')}>9</button>
+            <button
+              className="key-btn"
+              style={{ fontSize: 13, flexDirection: 'column', gap: 2, color: 'var(--accent-purple)' }}
+              onClick={() => {
+                const el = document.getElementById('camera-file-input')
+                if (el) el.click()
+              }}
+            >
+              <span style={{ fontSize: 18 }}>📷</span>
+              <span style={{ fontSize: 10, fontWeight: 600 }}>カメラ</span>
             </button>
-            <button className="key-btn" onClick={() => pressKey('0')}>
-              0
+
+            {/* 行 2 */}
+            <button className="key-btn" onClick={() => pressKey('4')}>4</button>
+            <button className="key-btn" onClick={() => pressKey('5')}>5</button>
+            <button className="key-btn" onClick={() => pressKey('6')}>6</button>
+            <button
+              className="key-btn"
+              style={{ fontSize: 13, flexDirection: 'column', gap: 2, color: 'var(--accent-pink)' }}
+              onClick={() => {
+                const memoEl = document.getElementById('memo-input-field')
+                if (memoEl) memoEl.focus()
+              }}
+            >
+              <span style={{ fontSize: 18 }}>📝</span>
+              <span style={{ fontSize: 10, fontWeight: 600 }}>メモ</span>
             </button>
-            <button className="key-btn key-delete" onClick={() => pressKey('DEL')}>
-              <BackspaceIcon />
+
+            {/* 行 3 */}
+            <button className="key-btn" onClick={() => pressKey('1')}>1</button>
+            <button className="key-btn" onClick={() => pressKey('2')}>2</button>
+            <button className="key-btn" onClick={() => pressKey('3')}>3</button>
+            {/* 「入力」ボタン（行3〜4を2段分スパン） */}
+            <button
+              className="key-btn"
+              style={{
+                gridRow: 'span 2',
+                aspectRatio: 'unset',
+                background: type === 'income' ? 'var(--gradient-income)' : 'var(--gradient-primary)',
+                color: 'white',
+                fontSize: 16,
+                fontWeight: 800,
+                border: 'none',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+              }}
+              onClick={handleSave}
+              disabled={saving || amountNum <= 0}
+            >
+              {saving ? (
+                <span className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+              ) : (
+                <>
+                  <span style={{ fontSize: 20 }}>↵</span>
+                  <span>入力</span>
+                </>
+              )}
             </button>
+
+            {/* 行 4 */}
+            <button className="key-btn" onClick={() => pressKey('00')}>00</button>
+            <button className="key-btn" onClick={() => pressKey('0')}>0</button>
+            <button className="key-btn" onClick={() => pressKey('.')}>.</button>
           </div>
         ) : (
           /* 電卓キーパッド (加減乗除 +, -, ×, ÷, =) */
@@ -398,6 +492,7 @@ export default function QuickInput({
         {/* 6. メモ入力欄 */}
         <div className="px-4">
           <input
+            id="memo-input-field"
             type="text"
             className="memo-input"
             placeholder="メモ・店名など（任意）"

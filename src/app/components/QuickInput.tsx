@@ -454,7 +454,7 @@ export default function QuickInput({
               </div>
               {currentSub && type !== 'income' && (
                 <div style={{ fontSize: 11, color: 'var(--accent-pink)', marginTop: 2, fontWeight: 500 }}>
-                  タグ: {currentSub.name}
+                  小カテゴリ: {currentSub.name}
                 </div>
               )}
             </div>
@@ -488,6 +488,74 @@ export default function QuickInput({
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>▼</span>
           </button>
         </div>
+
+        {/* 5-2. 大カテゴリ選択時にそのすぐ下に現れる小カテゴリ（中カテゴリ）チップ */}
+        {type !== 'income' && selectedCatId && (
+          <div className="px-4" style={{ marginTop: -2 }}>
+            <div
+              style={{
+                background: 'var(--bg-glass)',
+                border: '1px dashed var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span>🏷️</span>
+                <span>「{currentCat?.name}」の小カテゴリを選択</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  overflowX: 'auto',
+                  paddingBottom: 2,
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                <button
+                  className={`chip ${selectedSubId === null ? 'selected' : ''}`}
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 10px',
+                    whiteSpace: 'nowrap',
+                    borderColor: selectedSubId === null ? 'var(--accent-purple)' : 'var(--border-subtle)',
+                  }}
+                  onClick={() => setSelectedSubId(null)}
+                >
+                  指定なし（全般）
+                </button>
+                {subcategories
+                  .filter((s) => s.category_id === selectedCatId)
+                  .map((sub) => {
+                    const isSelected = selectedSubId === sub.id
+                    return (
+                      <button
+                        key={sub.id}
+                        className={`chip ${isSelected ? 'selected' : ''}`}
+                        style={{
+                          fontSize: 11,
+                          padding: '4px 10px',
+                          whiteSpace: 'nowrap',
+                          borderColor: isSelected ? 'var(--accent-pink)' : 'var(--border-subtle)',
+                          background: isSelected ? 'rgba(236, 72, 153, 0.25)' : 'var(--bg-glass)',
+                          color: isSelected ? 'white' : 'var(--text-primary)',
+                          fontWeight: isSelected ? 700 : 500,
+                        }}
+                        onClick={() => setSelectedSubId(sub.id)}
+                      >
+                        {sub.name}
+                      </button>
+                    )
+                  })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 6. メモ入力欄 */}
         <div className="px-4">

@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: '家計簿 | 超速手入力',
   description: '3秒で記録できる、自分専用の高機能家計簿アプリ',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/piggy-bank.svg',
+    shortcut: '/piggy-bank.svg',
+    apple: '/piggy-bank.svg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -27,6 +32,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="ja" className={inter.variable}>
       <head>
+        <link rel="icon" href="/piggy-bank.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/piggy-bank.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

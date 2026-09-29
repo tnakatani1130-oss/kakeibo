@@ -1,15 +1,17 @@
 {
-  "name": "家計簿アプリ",
+  "name": "家計簿 - お小遣い・家計管理",
   "short_name": "家計簿",
+  "description": "豚の貯金箱アイコンの超速家計簿アプリ",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F0F1A",
   "theme_color": "#0F0F1A",
   "icons": [
     {
-      "src": "/globe.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml"
+      "src": "/piggy-bank.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

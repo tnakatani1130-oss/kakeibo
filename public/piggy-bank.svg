@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2A1B4E" />
+      <stop offset="50%" stop-color="#180E30" />
+      <stop offset="100%" stop-color="#0F0820" />
+    </linearGradient>
+
+    <!-- Pig Body Gradient -->
+    <linearGradient id="pigGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF94B9" />
+      <stop offset="60%" stop-color="#FF5C8A" />
+      <stop offset="100%" stop-color="#E6396E" />
+    </linearGradient>
+
+    <!-- Ear / Snout Inner Gradient -->
+    <linearGradient id="pigInnerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFB3CD" />
+      <stop offset="100%" stop-color="#FF709B" />
+    </linearGradient>
+
+    <!-- Gold Coin Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE066" />
+      <stop offset="50%" stop-color="#FFCA00" />
+      <stop offset="100%" stop-color="#E69900" />
+    </linearGradient>
+
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.45" />
+    </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#FF5C8A" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Rounded App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Outer Glow Circle -->
+  <circle cx="256" cy="270" r="160" fill="#FF5C8A" opacity="0.1" />
+
+  <g filter="url(#shadow)">
+    <!-- Ears -->
+    <!-- Left Ear -->
+    <path d="M 170 170 C 140 100 200 110 220 160 Z" fill="url(#pigGrad)" />
+    <path d="M 180 165 C 155 115 195 120 210 160 Z" fill="url(#pigInnerGrad)" />
+
+    <!-- Right Ear -->
+    <path d="M 342 170 C 372 100 312 110 292 160 Z" fill="url(#pigGrad)" />
+    <path d="M 332 165 C 357 115 317 120 302 160 Z" fill="url(#pigInnerGrad)" />
+
+    <!-- Pig Feet -->
+    <ellipse cx="190" cy="375" rx="30" ry="35" fill="#D62B5E" />
+    <ellipse cx="322" cy="375" rx="30" ry="35" fill="#D62B5E" />
+
+    <!-- Pig Main Body -->
+    <ellipse cx="256" cy="270" rx="145" ry="125" fill="url(#pigGrad)" filter="url(#glow)" />
+
+    <!-- Body Highlight (3D Curved Shine) -->
+    <ellipse cx="220" cy="200" rx="70" ry="35" fill="#FFFFFF" opacity="0.25" transform="rotate(-15 220 200)" />
+
+    <!-- Coin Slot at top of body -->
+    <ellipse cx="256" cy="155" rx="32" ry="6" fill="#A81D45" />
+
+    <!-- Gold Coin dropping into slot -->
+    <g transform="translate(0, -25)">
+      <circle cx="256" cy="135" r="42" fill="url(#goldGrad)" stroke="#FFE899" stroke-width="4" />
+      <circle cx="256" cy="135" r="32" fill="none" stroke="#D48800" stroke-width="2.5" opacity="0.8" />
+      <!-- Yen / Dollar Sign inside Coin -->
+      <text x="256" y="146" font-family="'Outfit', 'Inter', sans-serif" font-size="34" font-weight="900" fill="#7A4D00" text-anchor="middle">¥</text>
+    </g>
+
+    <!-- Eyes -->
+    <ellipse cx="195" cy="250" rx="10" ry="14" fill="#200B14" />
+    <circle cx="192" cy="245" r="4" fill="#FFFFFF" />
+
+    <ellipse cx="317" cy="250" rx="10" ry="14" fill="#200B14" />
+    <circle cx="314" cy="245" r="4" fill="#FFFFFF" />
+
+    <!-- Cute Cheeks -->
+    <ellipse cx="170" cy="275" rx="16" ry="10" fill="#FF2E63" opacity="0.35" />
+    <ellipse cx="342" cy="275" rx="16" ry="10" fill="#FF2E63" opacity="0.35" />
+
+    <!-- Pig Snout (Nose) -->
+    <ellipse cx="256" cy="285" rx="46" ry="34" fill="url(#pigInnerGrad)" stroke="#E6396E" stroke-width="3" />
+    <!-- Nostrils -->
+    <ellipse cx="240" cy="285" rx="8" ry="11" fill="#A81D45" />
+    <ellipse cx="272" cy="285" rx="8" ry="11" fill="#A81D45" />
+    <!-- Snout Highlight -->
+    <ellipse cx="256" cy="263" rx="20" ry="7" fill="#FFFFFF" opacity="0.4" />
+  </g>
+</svg>

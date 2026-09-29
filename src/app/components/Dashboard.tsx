@@ -46,6 +46,34 @@ export default function Dashboard({
   // カレンダータップで選択された日付のモーダル
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null)
 
+  // 円グラフでタップされたカテゴリの詳細ポップアップ用
+  const [selectedChartCat, setSelectedChartCat] = useState<Category | null>(null)
+
+  const [year, month] = currentYearMonth.split('-').map(Number)
+  const firstDay = new Date(year, month - 1, 1)
+  const lastDay = new Date(year, month, 0)
+  const startDayOfWeek = firstDay.getDay()
+  const daysInMonth = lastDay.getDate()
+
+  const monthlyTx = transactions.filter((t) => t.date.startsWith(currentYearMonth))
+
+  // 選択されたカテゴリの当月トランザクション
+  const selectedCatTxs = selectedChartCat
+    ? monthlyTx.filter((t) => t.category_id === selectedChartCat.id && t.type === 'expense')
+    : []
+
+  const selectedCatTotal = selectedCatTxs.reduce((s, t) => s + t.amount, 0)
+
+  // 小カテゴリ別の集計
+  const subMap = new Map<string | null, { subName: string; total: number }>()
+  selectedCatTxs.forEach((tx) => {
+    const subId = tx.subcategory_id
+    const subName = subId ? subcategories.find((s) => s.id === subId)?.name || '未分類' : '詳細指定なし'
+    const cur = subMap.get(subId) || { subName, total: 0 }
+    cur.total += tx.amount
+    subMap.set(subId, cur)
+  })
+
   // 年月を操作
   const handlePrevMonth = () => {
     const [y, m] = currentYearMonth.split('-').map(Number)
@@ -76,13 +104,12 @@ export default function Dashboard({
     }
   }
 
-  const [year, month] = currentYearMonth.split('-').map(Number)
-  const firstDay = new Date(year, month - 1, 1)
-  const lastDay = new Date(year, month, 0)
-  const startDayOfWeek = firstDay.getDay()
-  const daysInMonth = lastDay.getDate()
-
-  const monthlyTx = transactions.filter((t) => t.date.startsWith(currentYearMonth))
+  const subBreakdown = Array.from(subMap.values())
+    .map((item) => ({
+      ...item,
+      percentage: selectedCatTotal > 0 ? Math.round((item.total / selectedCatTotal) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
 
   const dayMap = new Map<string, { expense: number; income: number; txs: Transaction[] }>()
   monthlyTx.forEach((tx) => {
@@ -187,10 +214,6 @@ export default function Dashboard({
       {subTab === 'chart' && (
         <div className="px-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="glass-card" style={{ padding: 20 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>
-              カテゴリ別 支出割合
-            </h3>
-            
             {/* 円グラフ上の収支ハイライト */}
             <div
               style={{
@@ -228,7 +251,11 @@ export default function Dashboard({
               </div>
             </div>
 
-            <DonutChart data={summary.byCategory} totalExpense={summary.totalExpense} />
+            <DonutChart
+              data={summary.byCategory}
+              totalExpense={summary.totalExpense}
+              onSelectCategory={(cat) => setSelectedChartCat(cat)}
+            />
           </div>
 
           {summary.byCategory.length > 0 && (
@@ -500,6 +527,153 @@ export default function Dashboard({
               >
                 {deletingId === pendingDeleteTx.id ? '削除中...' : '削除する'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── 📊 円グラフのカテゴリタップ時：詳細内訳ポップアップ ── */}
+      {selectedChartCat && (
+        <div className="modal-overlay" onClick={() => setSelectedChartCat(null)}>
+          <div
+            className="modal-content card-glass"
+            onClick={(e) => e.stopPropagation()}
+            style={{ padding: 20, maxHeight: '80vh', overflowY: 'auto' }}
+          >
+            {/* ヘッダー */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 24 }}>{selectedChartCat.icon || '📁'}</span>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800 }}>{selectedChartCat.name}</h3>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {year}年{month}月の支出詳細 ({selectedCatTxs.length}件)
+                  </div>
+                </div>
+              </div>
+              <button className="chip" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setSelectedChartCat(null)}>
+                ✕
+              </button>
+            </div>
+
+            {/* カテゴリ合計額 */}
+            <div
+              style={{
+                background: `${selectedChartCat.color || '#8B5CF6'}20`,
+                border: `1.5px solid ${selectedChartCat.color || 'var(--accent-purple)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>当月カテゴリ合計</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'white', fontFamily: 'var(--font-heading)' }}>
+                ¥{formatAmount(selectedCatTotal)}
+              </div>
+            </div>
+
+            {/* 小カテゴリの内訳 */}
+            {subBreakdown.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: 'var(--accent-pink)' }}>
+                  🏷️ 小カテゴリ別の内訳
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {subBreakdown.map((item, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: 'var(--bg-glass)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600 }}>
+                        <span>{item.subName}</span>
+                        <span>¥{formatAmount(item.total)} ({item.percentage}%)</span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.1)', height: 6, borderRadius: 3, overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${item.percentage}%`,
+                            height: '100%',
+                            background: selectedChartCat.color || 'var(--accent-pink)',
+                            borderRadius: 3,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* このカテゴリの明細リスト */}
+            <div>
+              <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: 'var(--text-secondary)' }}>
+                📝 該当する明細履歴 ({selectedCatTxs.length}件)
+              </h4>
+              {selectedCatTxs.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', padding: 12 }}>
+                  当月の記録はありません
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {selectedCatTxs.map((tx) => (
+                    <div
+                      key={tx.id}
+                      style={{
+                        background: 'var(--bg-glass)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>
+                          {tx.date} {tx.subcategory?.name ? `[${tx.subcategory.name}]` : ''}
+                        </div>
+                        {tx.memo && (
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{tx.memo}</div>
+                        )}
+                        {tx.payment_method && (
+                          <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            {tx.payment_method.icon} {tx.payment_method.name}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#FF6B6B' }}>
+                          ¥{formatAmount(tx.amount)}
+                        </div>
+                        <button
+                          className="action-icon-btn edit-btn"
+                          title="編集"
+                          onClick={() => setEditingTx(tx)}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="action-icon-btn delete-btn"
+                          title="削除"
+                          onClick={() => setPendingDeleteTx(tx)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -73,7 +73,7 @@ function SortableCatRow({
     border: `1px solid ${isDragging ? 'var(--accent-purple)' : 'var(--border-subtle)'}`,
     padding: 12,
     borderRadius: 12,
-    touchAction: 'none',
+    // touchAction はハンドルのみに設定し、コンテナのスクロールを妨げない
   }
 
   return (
@@ -347,13 +347,12 @@ export default function CategoryModal({
                           onSelect(cat.id, null)
                           onClose()
                         } else {
-                          // サブカテゴリがある場合は先頭を自動選択して即クローズ
-                          if (catSubs.length > 0) {
+                          // アコーディオンを開く／閉じる
+                          const next = isExpanded ? null : cat.id
+                          setTempCatId(next)
+                          // 展開時: 先頭サブを pre-select（モーダルは閉じない）
+                          if (next !== null && catSubs.length > 0) {
                             onSelect(cat.id, catSubs[0].id)
-                            onClose()
-                          } else {
-                            // サブなし: 大カテゴリのみ展開して確定ボタン表示
-                            setTempCatId(isExpanded ? null : cat.id)
                           }
                         }
                       }}
@@ -383,6 +382,53 @@ export default function CategoryModal({
                       )}
                     </button>
 
+                    {/* サブカテゴリありの場合: チップ一覧を展開 */}
+                    {!isIncomeMode && isExpanded && catSubs.length > 0 && (
+                      <div
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: `1px dashed ${cat.color || 'var(--accent-purple)'}`,
+                          borderRadius: 'var(--radius-md)',
+                          padding: 12,
+                          marginLeft: 12,
+                          marginRight: 4,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: 'var(--accent-pink)', fontWeight: 600 }}>
+                          「{cat.name}」の詳細カテゴリを選んで確定:
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {catSubs.map((sub) => {
+                            const isSelected = selectedCatId === cat.id && selectedSubId === sub.id
+                            return (
+                              <button
+                                key={sub.id}
+                                className={`chip ${isSelected ? 'selected' : ''}`}
+                                style={{
+                                  fontSize: 12,
+                                  padding: '6px 14px',
+                                  background: isSelected ? 'rgba(236, 72, 153, 0.3)' : 'var(--bg-glass)',
+                                  borderColor: isSelected ? 'var(--accent-pink)' : 'var(--border-subtle)',
+                                  color: isSelected ? 'white' : 'var(--text-primary)',
+                                  fontWeight: isSelected ? 700 : 500,
+                                }}
+                                onClick={() => {
+                                  onSelect(cat.id, sub.id)
+                                  onClose()
+                                }}
+                              >
+                                {sub.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* サブカテゴリなしの場合: 確定ボタンのみ */}
                     {!isIncomeMode && isExpanded && catSubs.length === 0 && (
                       <div
                         style={{

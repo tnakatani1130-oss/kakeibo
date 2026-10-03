@@ -36,7 +36,7 @@ export default function Dashboard({
   onNavigateToInputWithDate,
 }: DashboardProps) {
   const supabase = createClient()
-  const [subTab, setSubTab] = useState<'chart' | 'calendar' | 'list'>('chart')
+  const [subTab, setSubTab] = useState<'chart' | 'calendar' | 'list'>('list')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   
   // 編集用・削除用の Transaction
@@ -161,14 +161,11 @@ export default function Dashboard({
       {/* ── サブタブ切り替え ── */}
       <div className="px-4">
         <div className="type-toggle">
-          <button className={`type-btn ${subTab === 'chart' ? 'active-expense' : ''}`} onClick={() => setSubTab('chart')}>
-            📊 集計・円グラフ
+          <button className={`type-btn ${subTab === 'list' ? 'active-expense' : ''}`} onClick={() => setSubTab('list')}>
+            📝 明細
           </button>
-          <button className={`type-btn ${subTab === 'calendar' ? 'active-income' : ''}`} onClick={() => setSubTab('calendar')}>
-            📅 カレンダー
-          </button>
-          <button className={`type-btn ${subTab === 'list' ? 'active-transfer' : ''}`} onClick={() => setSubTab('list')}>
-            📝 明細リスト
+          <button className={`type-btn ${subTab === 'chart' ? 'active-income' : ''}`} onClick={() => setSubTab('chart')}>
+            📊 円グラフ
           </button>
         </div>
       </div>

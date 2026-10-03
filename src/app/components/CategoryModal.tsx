@@ -347,7 +347,14 @@ export default function CategoryModal({
                           onSelect(cat.id, null)
                           onClose()
                         } else {
-                          setTempCatId(isExpanded ? null : cat.id)
+                          // サブカテゴリがある場合は先頭を自動選択して即クローズ
+                          if (catSubs.length > 0) {
+                            onSelect(cat.id, catSubs[0].id)
+                            onClose()
+                          } else {
+                            // サブなし: 大カテゴリのみ展開して確定ボタン表示
+                            setTempCatId(isExpanded ? null : cat.id)
+                          }
                         }
                       }}
                     >
@@ -376,7 +383,7 @@ export default function CategoryModal({
                       )}
                     </button>
 
-                    {!isIncomeMode && isExpanded && (
+                    {!isIncomeMode && isExpanded && catSubs.length === 0 && (
                       <div
                         style={{
                           background: 'rgba(255, 255, 255, 0.04)',
@@ -385,54 +392,19 @@ export default function CategoryModal({
                           padding: 12,
                           marginLeft: 12,
                           marginRight: 4,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 10,
                         }}
                       >
-                        <div style={{ fontSize: 11, color: 'var(--accent-pink)', fontWeight: 600 }}>
-                          「{cat.name}」の詳細カテゴリを選択してください:
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          <button
-                            className={`chip ${selectedCatId === cat.id && selectedSubId === null ? 'selected' : ''}`}
-                            style={{
-                              fontSize: 12,
-                              padding: '6px 14px',
-                              fontWeight: selectedCatId === cat.id && selectedSubId === null ? 700 : 500,
-                            }}
-                            onClick={() => {
-                              onSelect(cat.id, null)
-                              onClose()
-                            }}
-                          >
-                            指定なし（{cat.name} 全般）
-                          </button>
-
-                          {catSubs.map((sub) => {
-                            const isSelected = selectedCatId === cat.id && selectedSubId === sub.id
-                            return (
-                              <button
-                                key={sub.id}
-                                className={`chip ${isSelected ? 'selected' : ''}`}
-                                style={{
-                                  fontSize: 12,
-                                  padding: '6px 14px',
-                                  background: isSelected ? 'rgba(236, 72, 153, 0.3)' : 'var(--bg-glass)',
-                                  borderColor: isSelected ? 'var(--accent-pink)' : 'var(--border-subtle)',
-                                  color: isSelected ? 'white' : 'var(--text-primary)',
-                                  fontWeight: isSelected ? 700 : 500,
-                                }}
-                                onClick={() => {
-                                  onSelect(cat.id, sub.id)
-                                  onClose()
-                                }}
-                              >
-                                {sub.name}
-                              </button>
-                            )
-                          })}
-                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>詳細カテゴリがありません</div>
+                        <button
+                          className="btn-primary"
+                          style={{ width: '100%', marginTop: 8, padding: '6px', fontSize: 12 }}
+                          onClick={() => {
+                            onSelect(cat.id, null)
+                            onClose()
+                          }}
+                        >
+                          {cat.name} で確定
+                        </button>
                       </div>
                     )}
                   </div>

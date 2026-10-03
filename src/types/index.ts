@@ -2,7 +2,7 @@
 // 家計簿アプリ 型定義
 // ============================================================
 
-export type TransactionType = 'expense' | 'income' | 'transfer'
+export type TransactionType = 'expense' | 'income'
 
 export interface Category {
   id: string

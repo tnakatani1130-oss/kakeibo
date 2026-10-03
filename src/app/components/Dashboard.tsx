@@ -164,7 +164,10 @@ export default function Dashboard({
           <button className={`type-btn ${subTab === 'list' ? 'active-expense' : ''}`} onClick={() => setSubTab('list')}>
             📝 明細
           </button>
-          <button className={`type-btn ${subTab === 'chart' ? 'active-income' : ''}`} onClick={() => setSubTab('chart')}>
+          <button className={`type-btn ${subTab === 'calendar' ? 'active-income' : ''}`} onClick={() => setSubTab('calendar')}>
+            📅 カレンダー
+          </button>
+          <button className={`type-btn ${subTab === 'chart' ? 'active-transfer' : ''}`} onClick={() => setSubTab('chart')}>
             📊 円グラフ
           </button>
         </div>

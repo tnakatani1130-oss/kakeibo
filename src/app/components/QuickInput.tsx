@@ -193,9 +193,7 @@ export default function QuickInput({
             }}>
               収入
             </button>
-            <button className={`type-btn ${type === 'transfer' ? 'active-transfer' : ''}`} onClick={() => setType('transfer')}>
-              振替
-            </button>
+
           </div>
         </div>
 

@@ -20,6 +20,7 @@ interface ParsedRow {
   skip: boolean
   isDuplicate?: boolean
   duplicateReason?: 'already_saved' | 'in_file'
+  matchedExistingMemo?: string | null
 }
 
 function parseYYMMDD(raw: string): string {
@@ -163,7 +164,7 @@ export default function ImportModal({
       const minDate = validDates[0]
       const maxDate = validDates[validDates.length - 1]
 
-      let existingList: { date: string; amount: number; memoNorm: string; matched: boolean }[] = []
+      let existingList: { date: string; amount: number; rawMemo: string | null; memoNorm: string; matched: boolean }[] = []
       if (minDate && maxDate) {
         const { data: dbData, error: dbErr } = await supabase
           .from('transactions')
@@ -177,6 +178,7 @@ export default function ImportModal({
           existingList = dbData.map(d => ({
             date: d.date,
             amount: d.amount,
+            rawMemo: d.memo,
             memoNorm: normalizeStr(d.memo),
             matched: false,
           }))
@@ -188,8 +190,9 @@ export default function ImportModal({
       const evaluatedRows: ParsedRow[] = rawParsed.map(r => {
         const descNorm = normalizeStr(r.description)
 
-        // 1. 既存DBレコードとの突合 (日付 + 金額一致、かつメモ/店名が一致または包含)
-        const matchIdx = existingList.findIndex(
+        // 1. 既存DBレコードとの突合 (日付 + 金額が一致するもの)
+        // ① まずメモ/店名が一致または包含するものを最優先でマッチ
+        let matchIdx = existingList.findIndex(
           d => !d.matched &&
                d.date === r.date &&
                d.amount === r.amount &&
@@ -197,12 +200,23 @@ export default function ImportModal({
                 (d.memoNorm && descNorm && (d.memoNorm.includes(descNorm) || descNorm.includes(d.memoNorm))))
         )
 
+        // ② メモ完全一致がなければ、同日同額の未マッチレコードとマッチ（手動登録でメモが未入力や別名義の場合も検出）
+        if (matchIdx === -1) {
+          matchIdx = existingList.findIndex(
+            d => !d.matched &&
+                 d.date === r.date &&
+                 d.amount === r.amount
+          )
+        }
+
         if (matchIdx !== -1) {
           existingList[matchIdx].matched = true
+          const matchedItem = existingList[matchIdx]
           return {
             ...r,
             isDuplicate: true,
             duplicateReason: 'already_saved' as const,
+            matchedExistingMemo: matchedItem.rawMemo,
             skip: true, // 既に登録済みなので初期状態でスキップ
           }
         }
@@ -770,9 +784,16 @@ function ImportRow({ index, row, categories, subcategories, paymentMethods, onCh
           </span>
         )}
 
-        {/* 店名 */}
-        <div style={{ flex: 1, fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {row.description}
+        {/* 店名と重複詳細 */}
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {row.description}
+          </div>
+          {row.isDuplicate && row.duplicateReason === 'already_saved' && (
+            <div style={{ fontSize: 10, color: '#fbbf24', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              既存データ: {row.matchedExistingMemo ? `「${row.matchedExistingMemo}」` : '同日・同額の支出あり'}
+            </div>
+          )}
         </div>
 
         {/* カテゴリバッジ */}

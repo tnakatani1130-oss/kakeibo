@@ -13,6 +13,7 @@ import type {
 } from '@/types'
 import QuickInput from './components/QuickInput'
 import Dashboard from './components/Dashboard'
+import ImportModal from './components/ImportModal'
 
 function InputIcon({ active }: { active: boolean }) {
   return (
@@ -36,6 +37,16 @@ function DashboardIcon({ active }: { active: boolean }) {
 }
 
 type ActiveTab = 'input' | 'dashboard'
+
+function ImportIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+}
 
 function getCurrentYYYYMM(): string {
   const now = new Date()
@@ -197,6 +208,7 @@ async function ensureDefaultData(
 export default function Home() {
   const supabase = useMemo(() => createClient(), [])
   const [activeTab, setActiveTab] = useState<ActiveTab>('input')
+  const [showImport, setShowImport] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState(false)
@@ -334,6 +346,17 @@ export default function Home() {
         />
       )}
 
+      {/* CSVインポートモーダル */}
+      {showImport && userId && (
+        <ImportModal
+          categories={categories}
+          subcategories={subcategories}
+          paymentMethods={paymentMethods}
+          userId={userId}
+          onClose={() => setShowImport(false)}
+          onImported={refreshData}
+        />
+      )}
 
       {/* ボトムナビゲーション */}
       <nav className="nav-bar">
@@ -353,6 +376,14 @@ export default function Home() {
         >
           <DashboardIcon active={activeTab === 'dashboard'} />
           履歴・分析
+        </button>
+        <button
+          className="nav-btn"
+          onClick={() => setShowImport(true)}
+          id="csv-import-btn"
+        >
+          <ImportIcon active={false} />
+          インポート
         </button>
       </nav>
     </div>

@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import type { Category, Subcategory, PaymentMethod, NewTransaction, TransactionType } from '@/types'
+import type { Category, Subcategory, PaymentMethod, NewTransaction, TransactionType, Transaction } from '@/types'
 import { createClient } from '@/lib/supabase'
 import CategoryModal from './CategoryModal'
 import PaymentModal from './PaymentModal'
+import SavedCompletionModal from './SavedCompletionModal'
+import EditTransactionModal from './EditTransactionModal'
 
 function BackspaceIcon() {
   return (
@@ -70,6 +72,11 @@ export default function QuickInput({
   // Modals
   const [isCatModalOpen, setIsCatModalOpen] = useState(false)
   const [isPayModalOpen, setIsPayModalOpen] = useState(false)
+
+  // 登録完了ポップアップ & 修正モーダル State
+  const [savedTx, setSavedTx] = useState<Transaction | null>(null)
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const [toast, setToast] = useState<{ msg: string; show: boolean; ok: boolean }>({
     msg: '',
@@ -145,13 +152,36 @@ export default function QuickInput({
         memo,
       }
 
-      const { error } = await supabase.from('transactions').insert(tx)
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert(tx)
+        .select(`
+          *,
+          category:categories(*),
+          subcategory:subcategories(*),
+          payment_method:payment_methods(*)
+        `)
+        .single()
+
       if (error) throw error
 
-      setAmountStr('')
-      setCalcFormula('')
-      setMemo('')
-      showToast('💾 保存しました！', true)
+      const createdTx: Transaction = (data as Transaction) || {
+        id: '',
+        user_id: userId,
+        date: selectedDate,
+        type,
+        amount: amountNum,
+        category_id: selectedCatId,
+        subcategory_id: selectedSubId,
+        payment_method_id: selectedPayId,
+        memo,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      // ポップアップ用に保存データをセットしてモーダル表示
+      setSavedTx(createdTx)
+      setIsCompletionModalOpen(true)
       onSaved()
     } catch (err: any) {
       console.error('Save error:', err)
@@ -159,6 +189,39 @@ export default function QuickInput({
     } finally {
       setSaving(false)
     }
+  }
+
+  // アクション：続けて入力（カテゴリ・支払い方法・日付を維持、金額・メモをクリア）
+  const handleContinueSameCategory = () => {
+    setAmountStr('')
+    setCalcFormula('')
+    setMemo('')
+    setIsCompletionModalOpen(false)
+    showToast('⚡ カテゴリを維持して続けて入力できます', true)
+  }
+
+  // アクション：完了（全クリアして初期状態へ）
+  const handleFinishReset = () => {
+    setAmountStr('')
+    setCalcFormula('')
+    setMemo('')
+    setSelectedCatId(null)
+    setSelectedSubId(null)
+    setIsCompletionModalOpen(false)
+    showToast('💾 保存を完了しました！', true)
+  }
+
+  // アクション：修正する（直前に保存したデータを編集モーダルで開く）
+  const handleOpenEdit = () => {
+    setIsCompletionModalOpen(false)
+    setIsEditModalOpen(true)
+  }
+
+  // 編集モーダルで修正・保存が成功したとき
+  const handleEditUpdated = () => {
+    setIsEditModalOpen(false)
+    onSaved()
+    showToast('✏️ 修正内容を更新しました', true)
   }
 
   function showToast(msg: string, ok: boolean) {
@@ -611,6 +674,32 @@ export default function QuickInput({
         onSelect={(payId) => setSelectedPayId(payId)}
         onRefresh={onRefreshMaster}
       />
+
+      {/* 登録完了ポップアップモーダル */}
+      <SavedCompletionModal
+        isOpen={isCompletionModalOpen}
+        onClose={() => setIsCompletionModalOpen(false)}
+        transaction={savedTx}
+        categories={categories}
+        subcategories={subcategories}
+        paymentMethods={paymentMethods}
+        onContinueSameCategory={handleContinueSameCategory}
+        onFinish={handleFinishReset}
+        onOpenEdit={handleOpenEdit}
+      />
+
+      {/* 修正用モーダル */}
+      <EditTransactionModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        transaction={savedTx}
+        categories={categories}
+        subcategories={subcategories}
+        paymentMethods={paymentMethods}
+        onUpdated={handleEditUpdated}
+        onRefreshMaster={onRefreshMaster}
+      />
     </>
   )
 }
+

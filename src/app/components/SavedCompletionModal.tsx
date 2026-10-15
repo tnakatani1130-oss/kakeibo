@@ -238,9 +238,9 @@ export default function SavedCompletionModal({
 
         {/* アクションボタングループ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-          {/* 1. メイン: 続けて入力（カテゴリ維持） */}
+          {/* 1. メイン: 完了 */}
           <button
-            onClick={onContinueSameCategory}
+            onClick={onFinish}
             style={{
               width: '100%',
               padding: '14px',
@@ -260,24 +260,50 @@ export default function SavedCompletionModal({
               transition: 'transform 0.15s ease',
             }}
           >
-            <span>🔄</span>
-            <span>続けて入力（カテゴリ維持）</span>
+            <span>✅</span>
+            <span>完了</span>
           </button>
 
-          {/* 2. サブアクション: 修正 & 完了 */}
+          {/* 2. サブアクション: 続けて入力 & 修正 */}
           <div style={{ display: 'flex', gap: 10 }}>
-            {/* 修正ボタン */}
+            {/* 続けて入力（カテゴリ維持）ボタン */}
             <button
-              onClick={onOpenEdit}
+              onClick={onContinueSameCategory}
               style={{
-                flex: 1,
-                padding: '12px',
-                background: 'rgba(139, 92, 246, 0.12)',
+                flex: 1.2,
+                padding: '12px 8px',
+                background: 'rgba(139, 92, 246, 0.15)',
                 border: '1px solid rgba(139, 92, 246, 0.35)',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--accent-purple)',
                 fontFamily: 'var(--font-heading)',
-                fontSize: 14,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'background 0.15s ease',
+              }}
+              title="同じカテゴリを維持したまま次の金額を入力"
+            >
+              <span>🔄</span>
+              <span>続けて入力 (維持)</span>
+            </button>
+
+            {/* 修正ボタン */}
+            <button
+              onClick={onOpenEdit}
+              style={{
+                flex: 0.8,
+                padding: '12px 8px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-heading)',
+                fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
@@ -289,31 +315,6 @@ export default function SavedCompletionModal({
             >
               <span>✏️</span>
               <span>修正する</span>
-            </button>
-
-            {/* 完了ボタン */}
-            <button
-              onClick={onFinish}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-heading)',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                transition: 'background 0.15s ease',
-              }}
-            >
-              <span>✅</span>
-              <span>完了</span>
             </button>
           </div>
         </div>

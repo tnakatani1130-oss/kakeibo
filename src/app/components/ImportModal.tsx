@@ -344,9 +344,9 @@ export default function ImportModal({
           width: '100%',
           maxWidth: 480,
           maxHeight: '92dvh',
-          background: 'linear-gradient(180deg, #1a1a2e 0%, #12121a 100%)',
+          background: 'var(--bg-secondary)',
           borderRadius: '24px 24px 0 0',
-          border: '1px solid rgba(139,92,246,0.2)',
+          border: '1px solid var(--border-subtle)',
           borderBottom: 'none',
           display: 'flex',
           flexDirection: 'column',
@@ -631,9 +631,9 @@ export default function ImportModal({
         {rows && rows.length > 0 && (
           <div style={{
             padding: '12px 16px 20px',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--bg-card)',
+            borderTop: '1px solid var(--border-subtle)',
             flexShrink: 0,
-            background: 'rgba(12,12,22,0.8)',
           }}>
             <button
               onClick={handleSave}
@@ -868,8 +868,8 @@ function ImportRow({ index, row, categories, subcategories, paymentMethods, onCh
               onChange={e => onChange(index, { category_id: e.target.value || null })}
               style={{
                 width: '100%',
-                background: '#1e1e2e',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-sm)',
                 padding: '8px 10px',
                 color: 'var(--text-primary)',
@@ -894,8 +894,8 @@ function ImportRow({ index, row, categories, subcategories, paymentMethods, onCh
                 onChange={e => onChange(index, { subcategory_id: e.target.value || null })}
                 style={{
                   width: '100%',
-                  background: '#1e1e2e',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-sm)',
                   padding: '8px 10px',
                   color: 'var(--text-primary)',

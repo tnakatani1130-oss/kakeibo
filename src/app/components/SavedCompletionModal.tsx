@@ -68,18 +68,19 @@ export default function SavedCompletionModal({
       onClick={onClose}
     >
       <div
+        className="modal-sheet"
         style={{
           width: '100%',
           maxWidth: 480,
-          background: 'linear-gradient(180deg, #1e1e32 0%, #131320 100%)',
+          background: 'var(--bg-secondary)',
           borderRadius: '24px 24px 0 0',
-          border: '1px solid rgba(139, 92, 246, 0.3)',
+          border: '1px solid var(--border-subtle)',
           borderBottom: 'none',
           padding: '24px 20px 32px',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
-          boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.5)',
+          boxShadow: 'var(--shadow-card)',
           animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -115,8 +116,8 @@ export default function SavedCompletionModal({
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '50%',
               width: 32,
               height: 32,
@@ -125,7 +126,7 @@ export default function SavedCompletionModal({
               justifyContent: 'center',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              fontSize: 16,
+              fontSize: 14,
             }}
           >
             ✕
@@ -135,8 +136,8 @@ export default function SavedCompletionModal({
         {/* 保存内容カード */}
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--bg-glass)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-lg)',
             padding: '16px',
             display: 'flex',

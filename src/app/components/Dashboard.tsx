@@ -149,7 +149,7 @@ export default function Dashboard({
           <button className="chip" style={{ padding: '4px 12px', fontSize: 13 }} onClick={handlePrevMonth}>
             ◀ 前月
           </button>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 800, color: 'white' }}>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>
             {year}年 {month}月
           </div>
           <button className="chip" style={{ padding: '4px 12px', fontSize: 13 }} onClick={handleNextMonth}>
@@ -287,7 +287,7 @@ export default function Dashboard({
                     }}
                     onClick={() => setSelectedDayDate(cell.dateStr)}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{cell.day}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{cell.day}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 1 }}>
                       {hasExpense && (
                         <span style={{ fontSize: 9, color: '#FF6B6B', fontWeight: 700, lineHeight: 1 }}>
@@ -532,7 +532,7 @@ export default function Dashboard({
               }}
             >
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>当月カテゴリ合計</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'white', fontFamily: 'var(--font-heading)' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
                 ¥{formatAmount(selectedCatTotal)}
               </div>
             </div>
@@ -602,7 +602,7 @@ export default function Dashboard({
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
                           {tx.date} {tx.subcategory?.name ? `[${tx.subcategory.name}]` : ''}
                         </div>
                         {tx.memo && (

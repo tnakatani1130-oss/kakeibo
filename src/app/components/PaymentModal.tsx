@@ -224,11 +224,11 @@ export default function PaymentModal({
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   style={{
-                    background: 'var(--bg-dark)',
+                    background: 'var(--bg-glass)',
                     border: '1px solid var(--border-subtle)',
                     padding: '8px 12px',
                     borderRadius: 8,
-                    color: 'white',
+                    color: 'var(--text-primary)',
                   }}
                 />
                 <div>

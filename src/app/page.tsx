@@ -217,6 +217,32 @@ export default function Home() {
   const [currentYM, setCurrentYM] = useState<string>(getCurrentYYYYMM())
   const [inputInitialDate, setInputInitialDate] = useState<string | undefined>(undefined)
 
+  // テーマ切替 State ('dark' | 'light')
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('kakeibo_theme')
+      if (saved === 'light' || saved === 'dark') {
+        setTheme(saved)
+        document.documentElement.setAttribute('data-theme', saved)
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark')
+      }
+    } catch {}
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark'
+      try {
+        localStorage.setItem('kakeibo_theme', next)
+        document.documentElement.setAttribute('data-theme', next)
+      } catch {}
+      return next
+    })
+  }, [])
+
   const [categories, setCategories] = useState<Category[]>([])
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -305,6 +331,17 @@ export default function Home() {
         <h1 className="page-title">
           {activeTab === 'input' ? <span className="gradient-text">記録する</span> : <span className="gradient-text">履歴・分析</span>}
         </h1>
+
+        {/* テーマ切替ボタン（日中/夜間） */}
+        <button
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          title={theme === 'light' ? '夜間モード（ダーク）に切り替え' : '日中モード（ライト）に切り替え'}
+          aria-label="配色切り替え"
+        >
+          <span style={{ fontSize: 15 }}>{theme === 'light' ? '☀️' : '🌙'}</span>
+          <span>{theme === 'light' ? '日中' : '夜間'}</span>
+        </button>
       </div>
 
       {/* メインコンテンツ */}

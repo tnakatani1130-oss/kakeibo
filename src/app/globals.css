@@ -864,3 +864,196 @@ body {
   background: var(--border-subtle);
   margin: 8px 0;
 }
+
+/* ============================================================
+   Light Theme (日中モード - 明るく高コントラストで視認性抜群)
+   ============================================================ */
+[data-theme="light"] {
+  /* Colors */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.96);
+  --bg-glass-hover: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --border-active: #8b5cf6;
+
+  /* Accent Colors (日中もくっきり見えるトーン) */
+  --accent-purple: #7c3aed;
+  --accent-purple-glow: rgba(124, 58, 237, 0.12);
+  --accent-pink: #db2777;
+  --accent-blue: #2563eb;
+  --accent-emerald: #059669;
+  --accent-amber: #d97706;
+  --accent-red: #dc2626;
+
+  /* Text - 日中の太陽光下でもくっきり読める高コントラスト */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  /* Gradients */
+  --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+
+  /* Shadows */
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-purple: 0 4px 20px rgba(124, 58, 237, 0.1);
+  --shadow-btn: 0 4px 16px rgba(124, 58, 237, 0.25);
+
+  color-scheme: light;
+}
+
+[data-theme="light"] body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .nav-bar {
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .nav-btn {
+  color: #64748b;
+}
+
+[data-theme="light"] .nav-btn.active {
+  color: var(--accent-purple);
+}
+
+[data-theme="light"] .nav-btn:hover:not(.active) {
+  color: var(--text-primary);
+  background: #f1f5f9;
+}
+
+[data-theme="light"] .key-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .key-btn:active {
+  background: #f1f5f9;
+  border-color: var(--accent-purple);
+}
+
+[data-theme="light"] .type-toggle {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .type-btn {
+  color: #64748b;
+}
+
+[data-theme="light"] .chip {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .chip.selected {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+[data-theme="light"] .date-pill {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+[data-theme="light"] .date-pill.selected {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+[data-theme="light"] .date-pill input[type="date"] {
+  color-scheme: light;
+  color: #0f172a;
+}
+
+[data-theme="light"] .memo-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .memo-input:focus {
+  background: #ffffff;
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+[data-theme="light"] .summary-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .tx-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .tx-item:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .modal-content,
+[data-theme="light"] .modal-sheet {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .modal-overlay {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+[data-theme="light"] select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] input[type="date"] {
+  color: #0f172a;
+  color-scheme: light;
+}
+
+/* テーマ切り替えボタンスタイル */
+.theme-toggle-btn {
+  background: var(--bg-glass);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent-purple);
+  background: var(--bg-glass-hover);
+  transform: translateY(-1px);
+}
+

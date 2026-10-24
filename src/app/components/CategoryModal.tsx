@@ -148,7 +148,7 @@ function SortableCatRow({
                   placeholder="項目名"
                   value={newSubName}
                   onChange={(e) => onSetNewSubName(e.target.value)}
-                  style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'white', width: 100 }}
+                  style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'var(--text-primary)', width: 100 }}
                 />
                 <button className="btn-primary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => onCreateSubcategory(cat.id)}>
                   追加
@@ -337,7 +337,7 @@ export default function CategoryModal({
                         background: isExpanded ? `${cat.color || '#8B5CF6'}25` : 'var(--bg-glass)',
                         border: `1.5px solid ${isExpanded ? cat.color || 'var(--accent-purple)' : 'var(--border-subtle)'}`,
                         borderRadius: 'var(--radius-md)',
-                        color: 'white',
+                        color: 'var(--text-primary)',
                         textAlign: 'left',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
@@ -480,11 +480,11 @@ export default function CategoryModal({
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
                   style={{
-                    background: 'var(--bg-dark)',
+                    background: 'var(--bg-glass)',
                     border: '1px solid var(--border-subtle)',
                     padding: '8px 12px',
                     borderRadius: 8,
-                    color: 'white',
+                    color: 'var(--text-primary)',
                   }}
                 />
                 <div>

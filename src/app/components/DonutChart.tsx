@@ -94,7 +94,7 @@ export default function DonutChart({ data, totalExpense, onSelectCategory }: Don
           }}
         >
           <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>支出合計</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'white', fontFamily: 'var(--font-heading)' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
             ¥{totalExpense.toLocaleString('ja-JP')}
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function DonutChart({ data, totalExpense, onSelectCategory }: Don
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-sm)',
               padding: '6px 10px',
-              color: 'white',
+              color: 'var(--text-primary)',
               cursor: 'pointer',
               textAlign: 'left',
               transition: 'all 0.15s ease',
@@ -135,7 +135,7 @@ export default function DonutChart({ data, totalExpense, onSelectCategory }: Don
                 {item.category?.icon} {item.category?.name}
               </span>
             </div>
-            <span style={{ fontWeight: 700, color: 'white', marginLeft: 4 }}>{item.percentage}%</span>
+            <span style={{ fontWeight: 700, color: 'var(--text-primary)', marginLeft: 4 }}>{item.percentage}%</span>
           </button>
         ))}
       </div>

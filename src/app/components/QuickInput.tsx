@@ -8,12 +8,11 @@ import PaymentModal from './PaymentModal'
 import SavedCompletionModal from './SavedCompletionModal'
 import EditTransactionModal from './EditTransactionModal'
 
-function BackspaceIcon() {
+function ArrowLeftIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
-      <line x1="18" y1="9" x2="12" y2="15" />
-      <line x1="12" y1="9" x2="18" y2="15" />
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
     </svg>
   )
 }
@@ -352,7 +351,7 @@ export default function QuickInput({
             {/* ⌫ 1文字削除 ＆ ✕ クリアボタン */}
             {(amountStr || calcFormula) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                {/* 1文字削除ボタン */}
+                {/* 1文字戻るボタン（←マーク） */}
                 <button
                   type="button"
                   onClick={() => {
@@ -375,10 +374,10 @@ export default function QuickInput({
                     justifyContent: 'center',
                     transition: 'all 0.15s ease',
                   }}
-                  title="1文字削除"
-                  aria-label="1文字削除"
+                  title="1文字戻る"
+                  aria-label="1文字戻る"
                 >
-                  <BackspaceIcon />
+                  <ArrowLeftIcon />
                 </button>
 
                 {/* ✕ 全クリアボタン */}
@@ -499,21 +498,7 @@ export default function QuickInput({
             {/* 行 4 */}
             <button className="key-btn" onClick={() => pressKey('00')}>00</button>
             <button className="key-btn" onClick={() => pressKey('0')}>0</button>
-            {/* 1文字削除（バックスペース）キー */}
-            <button
-              className="key-btn"
-              onClick={() => pressKey('DEL')}
-              style={{
-                color: 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="1文字削除"
-              aria-label="1文字削除"
-            >
-              <BackspaceIcon />
-            </button>
+            <button className="key-btn" onClick={() => pressKey('.')}>.</button>
           </div>
         ) : (
           /* 電卓キーパッド (加減乗除 +, -, ×, ÷, =) */

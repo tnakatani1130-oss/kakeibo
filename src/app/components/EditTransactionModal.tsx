@@ -175,6 +175,7 @@ export default function EditTransactionModal({
                   inputMode="numeric"
                   value={amountStr}
                   onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="0"
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -186,6 +187,31 @@ export default function EditTransactionModal({
                     width: '100%',
                   }}
                 />
+                {amountStr && (
+                  <button
+                    type="button"
+                    onClick={() => setAmountStr('')}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      width: 30,
+                      height: 30,
+                      color: '#f87171',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                    title="金額をクリア"
+                    aria-label="金額をクリア"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
 

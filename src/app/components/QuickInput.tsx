@@ -349,23 +349,66 @@ export default function QuickInput({
               </div>
             </div>
 
-            {/* ⌫ 削除ボタン */}
-            {amountStr && (
-              <button
-                onClick={() => pressKey('DEL')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                title="1文字削除"
-              >
-                <BackspaceIcon />
-              </button>
+            {/* ⌫ 1文字削除 ＆ ✕ クリアボタン */}
+            {(amountStr || calcFormula) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {/* 1文字削除ボタン */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isCalcMode) {
+                      pressCalcKey('DEL')
+                    } else {
+                      pressKey('DEL')
+                    }
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: 'var(--radius-sm)',
+                    width: 34,
+                    height: 34,
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="1文字削除"
+                  aria-label="1文字削除"
+                >
+                  <BackspaceIcon />
+                </button>
+
+                {/* ✕ 全クリアボタン */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAmountStr('')
+                    setCalcFormula('')
+                  }}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    width: 34,
+                    height: 34,
+                    color: '#f87171',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="金額をクリア"
+                  aria-label="金額をクリア"
+                >
+                  ✕
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -456,7 +499,21 @@ export default function QuickInput({
             {/* 行 4 */}
             <button className="key-btn" onClick={() => pressKey('00')}>00</button>
             <button className="key-btn" onClick={() => pressKey('0')}>0</button>
-            <button className="key-btn" onClick={() => pressKey('.')}>.</button>
+            {/* 1文字削除（バックスペース）キー */}
+            <button
+              className="key-btn"
+              onClick={() => pressKey('DEL')}
+              style={{
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="1文字削除"
+              aria-label="1文字削除"
+            >
+              <BackspaceIcon />
+            </button>
           </div>
         ) : (
           /* 電卓キーパッド (加減乗除 +, -, ×, ÷, =) */

@@ -930,14 +930,35 @@ body {
 
 [data-theme="light"] .key-btn {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #cbd5e1;
   color: #0f172a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 [data-theme="light"] .key-btn:active {
   background: #f1f5f9;
   border-color: var(--accent-purple);
+}
+
+[data-theme="light"] .key-btn span {
+  font-weight: 700;
+}
+
+[data-theme="light"] button[aria-label="1文字戻る"] {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] button[aria-label="金額をクリア"] {
+  background: #fef2f2 !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #dc2626 !important;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.08) !important;
 }
 
 [data-theme="light"] .type-toggle {
